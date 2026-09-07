@@ -26,6 +26,10 @@
 > The research question underneath: *can an adaptive AI guide a lost diver without turning survival horror
 > into navigation software?*
 
+**The name.** A fathom is the oldest measure of depth, six feet of sounding line hauled up hand over hand, and
+to fathom something is to get to the bottom of it, to understand it completely. FATHOM does the first and
+refuses the second. It will tell you how deep you are. It will not tell you what is down there.
+
 <br>
 
 ## Transmissions
