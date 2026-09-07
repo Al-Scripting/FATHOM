@@ -50,8 +50,11 @@ def test_critical_and_priority() -> None:
         t = {**CALM, "threat_dist": 10.0}
         text, source, latency = fathom.hint(t, fathom.situation(t), "threat_contact", "ollama")
         assert (text, source) == (fathom.FALLBACK["threat_contact"], "fallback") and latency < 0.01
-        t = {**CALM, "o2": 4.0, "air_dist": 12.0}
+        t = {**CALM, "o2": 4.0, "air_dist": 12.0, "depth": 5.0}  # 4 s of air still covers 5 m
         assert fathom.hint(t, fathom.situation(t), "oxygen_critical", "ollama")[0] == "Oxygen critical. Replenish now."
+        t["depth"] = 20.0  # and does not cover 20 m
+        assert fathom.hint(t, fathom.situation(t), "oxygen_critical", "ollama")[0] == \
+            "Oxygen critical. The surface is out of reach. Replenish now."
     finally:
         fathom.ask = ASK
     s = fathom.situation({**CALM, "o2": 10.0, "dist_home": 2200.0})  # life outranks the way home
