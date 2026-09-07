@@ -53,26 +53,27 @@ Collector Leviathan at ten metres and six seconds of air, at 459 m.
 ### Hear it
 
 Every file below is the real thing: IVONA Amy through the original filter chain, exactly as it plays in the headset.
-GitHub opens each one in its own player. **[▶ Play the whole showreel](docs/audio/fathom_showreel.mp3)**, fifteen
-lines with a breath between them, or pick one:
+**The listen page has players for all of them: [al-scripting.github.io/FATHOM](https://al-scripting.github.io/FATHOM/).**
+Or click a line here and the browser plays it. **[▶ The whole showreel](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/fathom_showreel.mp3)**,
+fifteen lines with a breath between them, or pick one:
 
 | | Line | Dread |
 |---|---|---|
-| [▶](docs/audio/companion_link.mp3) | "Companion link established. Monitoring vitals and surroundings." | on start |
-| [▶](docs/audio/leviathan_class.mp3) | "Detecting a leviathan class lifeform in the region. Are you certain whatever you're doing is worth it?" | the game's own line, for reference |
-| [▶](docs/audio/something_large.mp3) | "Something large is close. Stay still, or leave quietly." | 0.15 |
-| [▶](docs/audio/observing.mp3) | "It's observing. Pressure increasing." | 0.68 |
-| [▶](docs/audio/contact_below_behind.mp3) | "Contact. Below, behind you. Do not move." | 0.85, instant |
-| [▶](docs/audio/oxygen_critical.mp3) | "Oxygen critical. Ascend." | |
-| [▶](docs/audio/surface_out_of_reach.mp3) | "Oxygen critical. The surface is out of reach. Replenish now." | 0.86 |
-| [▶](docs/audio/diminishing_light.mp3) | "Return to the diminishing light." | 0.33 |
-| [▶](docs/audio/something_vast.mp3) | "Pressure mounts. Something vast stirs in the black." | 1.00 |
-| [▶](docs/audio/something_breathes.mp3) | "Pressure shifts. Something breathes." | 1.00, clean |
-| [▶](docs/audio/something_breathes_dread70.mp3) | the same line as the PDA starts to fail | 0.70 |
-| [▶](docs/audio/something_breathes_dread95.mp3) | the same line, barely holding together | 0.95 |
-| [▶](docs/audio/contact_below_behind_dread90.mp3) | "Contact. Below, behind you. Do not move." while falling apart | 0.90 |
-| [▶](docs/audio/consumes_the_light.mp3) | "Pressure shifts. Something consumes the light." | 1.00 |
-| [▶](docs/audio/phantom.mp3) | "Acoustic contact. Bearing unresolved." | the lie |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/companion_link.mp3) | "Companion link established. Monitoring vitals and surroundings." | on start |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/leviathan_class.mp3) | "Detecting a leviathan class lifeform in the region. Are you certain whatever you're doing is worth it?" | the game's own line, for reference |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/something_large.mp3) | "Something large is close. Stay still, or leave quietly." | 0.15 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/observing.mp3) | "It's observing. Pressure increasing." | 0.68 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/contact_below_behind.mp3) | "Contact. Below, behind you. Do not move." | 0.85, instant |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/oxygen_critical.mp3) | "Oxygen critical. Ascend." | |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/surface_out_of_reach.mp3) | "Oxygen critical. The surface is out of reach. Replenish now." | 0.86 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/diminishing_light.mp3) | "Return to the diminishing light." | 0.33 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/something_vast.mp3) | "Pressure mounts. Something vast stirs in the black." | 1.00 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/something_breathes.mp3) | "Pressure shifts. Something breathes." | 1.00, clean |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/something_breathes_dread70.mp3) | the same line as the PDA starts to fail | 0.70 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/something_breathes_dread95.mp3) | the same line, barely holding together | 0.95 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/contact_below_behind_dread90.mp3) | "Contact. Below, behind you. Do not move." while falling apart | 0.90 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/consumes_the_light.mp3) | "Pressure shifts. Something consumes the light." | 1.00 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/phantom.mp3) | "Acoustic contact. Bearing unresolved." | the lie |
 
 The degraded files are rebuilt from the clean line at playback, from the dread level, so no two failures are the
 same. Generate your own: `python pda_voice.py --dread 0.9 "Your line here."`
