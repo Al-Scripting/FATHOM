@@ -1,0 +1,7 @@
+__pycache__/
+discovery.txt
+sessions/
+telemetry.json
+telemetry.json.tmp
+trace.jsonl
+voice_cache/

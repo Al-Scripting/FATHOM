@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FATHOM</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root { --cyan: #3fd7ff; --coral: #ff6a4d; --sand: #f0c987; --slate: #8aa5b8; --ice: #d7ecf5; --dim: #5d8299;
+          --line: rgba(63,215,255,.16); --glass: rgba(4,20,36,.72); --mono: "JetBrains Mono", Consolas, monospace; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; color: var(--ice); font: 15px/1.4 Rajdhani, "Segoe UI", system-ui, sans-serif;
+         background: #030a12 radial-gradient(120% 80% at 50% -10%, #0d3352 0%, #072238 35%, #030b14 75%, #010509 100%) fixed; }
+  body::before { content: ""; position: fixed; inset: 0; pointer-events: none; background: var(--coral); opacity: 0; transition: opacity 2s; }
+  body.dread::before { opacity: var(--dread-tint, 0); }
+  body::after { content: ""; position: fixed; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0,0,0,.08) 3px 4px); }
+  header { display: flex; align-items: center; gap: 22px; padding: 14px 26px; border-bottom: 1px solid var(--line); background: rgba(2,10,20,.5); backdrop-filter: blur(6px); }
+  header h1 { margin: 0; font: 700 22px/1 Rajdhani; letter-spacing: .42em; color: var(--cyan); text-shadow: 0 0 18px rgba(63,215,255,.45); }
+  header .tag { color: var(--dim); letter-spacing: .18em; text-transform: uppercase; font-size: 12px; }
+  header .spacer { flex: 1; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; font: 600 12px/1 Rajdhani; letter-spacing: .2em; text-transform: uppercase; }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); animation: pulse 1.6s infinite; }
+  .pill.lost { color: var(--coral); border-color: rgba(255,106,77,.5); } .pill.lost i { background: var(--coral); box-shadow: 0 0 10px var(--coral); animation: none; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  main { display: grid; grid-template-columns: 330px minmax(0, 1fr) 380px; gap: 16px; padding: 16px 26px 26px; }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .panel { position: relative; background: var(--glass); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px; backdrop-filter: blur(8px); }
+  .panel::before, .panel::after { content: ""; position: absolute; width: 12px; height: 12px; border: 0 solid var(--cyan); opacity: .8; }
+  .panel::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; } .panel::after { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+  h2 { margin: 0 0 10px; font: 600 11px/1 Rajdhani; letter-spacing: .3em; text-transform: uppercase; color: var(--cyan); opacity: .85; }
+  h2 small { color: var(--dim); letter-spacing: .12em; margin-left: 8px; }
+  .num { font: 600 34px/1 var(--mono); letter-spacing: -.02em; } .num small { font: 500 13px/1 Rajdhani; color: var(--dim); margin-left: 5px; letter-spacing: .1em; }
+  .vitals { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: center; }
+  .ring { position: relative; width: 150px; height: 150px; } .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring .c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring .c .num { font-size: 38px; } .ring .c span { font-size: 11px; letter-spacing: .3em; color: var(--dim); text-transform: uppercase; }
+  .ruler { display: flex; gap: 10px; align-items: stretch; height: 150px; }
+  .ruler svg { height: 100%; width: 78px; overflow: visible; }
+  .ruler .txt { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+  .ruler .txt .lbl { font-size: 11px; letter-spacing: .3em; color: var(--dim); text-transform: uppercase; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip { padding: 4px 11px; border: 1px solid var(--line); border-radius: 2px; color: var(--dim); font: 600 12px/1 Rajdhani; letter-spacing: .14em; text-transform: uppercase; transition: all .3s; }
+  .chip.on { color: var(--coral); border-color: var(--coral); background: rgba(255,106,77,.12); box-shadow: 0 0 14px rgba(255,106,77,.25); }
+  .stack { display: flex; height: 14px; border-radius: 2px; overflow: hidden; background: rgba(255,255,255,.04); }
+  .stack i { display: block; height: 100%; transition: width .4s; } .stack .explorer { background: var(--sand); } .stack .survivor { background: var(--coral); } .stack .navigator { background: var(--cyan); }
+  .legend { display: flex; justify-content: space-between; margin-top: 8px; font: 600 12px/1 Rajdhani; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+  .legend b { color: var(--ice); } .legend span::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 1px; }
+  .legend .explorer::before { background: var(--sand); } .legend .survivor::before { background: var(--coral); } .legend .navigator::before { background: var(--cyan); }
+  .who { font: 700 20px/1 Rajdhani; letter-spacing: .3em; text-transform: uppercase; margin-bottom: 10px; }
+  .meter { position: relative; height: 16px; border-radius: 2px; background: rgba(255,255,255,.04); overflow: hidden; }
+  .meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan) 0%, var(--sand) 55%, var(--coral) 100%); transition: width .6s; box-shadow: 0 0 var(--glow, 0px) rgba(255,106,77,.8); }
+  .meter::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 9%, rgba(3,10,18,.9) 9% 10%); }
+  .dreadrow { display: flex; justify-content: space-between; margin-top: 8px; font: 600 12px/1 Rajdhani; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); }
+  .dreadrow b { color: var(--coral); }
+  .sonar { display: grid; grid-template-columns: 250px 1fr; gap: 18px; align-items: center; }
+  .sonar svg { width: 250px; height: 250px; }
+  .sonar .keys { display: flex; flex-direction: column; gap: 14px; }
+  .sonar .keys .k { padding-left: 14px; border-left: 3px solid var(--slate); } .sonar .keys .k.threat { border-color: var(--coral); }
+  .sonar .keys .lbl { font-size: 11px; letter-spacing: .3em; color: var(--dim); text-transform: uppercase; }
+  .sonar .keys .name { color: var(--slate); font-size: 13px; letter-spacing: .08em; }
+  .note { color: var(--dim); font-size: 12px; letter-spacing: .08em; }
+  .plot { position: relative; height: 200px; }
+  .log { list-style: none; margin: 0; padding: 0; max-height: calc(100vh - 150px); overflow: auto; }
+  .log li { padding: 10px 0 10px 14px; border-left: 2px solid var(--cyan); border-bottom: 1px solid var(--line); margin-bottom: 2px; }
+  .log li.threat, .log li.ambient { border-left-color: var(--coral); }
+  .log li.fallback { border-left-style: dashed; }
+  .log .line { font: 600 17px/1.3 Rajdhani; letter-spacing: .02em; }
+  .log .meta { margin-top: 4px; font: 400 11px/1.4 var(--mono); color: var(--dim); }
+  .log .meta b { color: var(--cyan); font-weight: 600; } .log li.threat .meta b, .log li.ambient .meta b { color: var(--coral); }
+  .log .empty { color: var(--dim); letter-spacing: .2em; text-transform: uppercase; font-size: 12px; padding: 10px 0; border: 0; }
+  .empty-note { color: var(--dim); font-size: 12px; }
+  @media (max-width: 1250px) { main { grid-template-columns: 330px minmax(0, 1fr); } main .col:last-child { grid-column: 1 / -1; } .log { max-height: 50vh; } }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; } .sonar { grid-template-columns: 1fr; justify-items: center; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>FATHOM</h1><span class="tag">Helpful, not omniscient</span>
+  <span class="spacer"></span>
+  <span class="tag" id="stats"></span>
+  <span class="pill lost" id="link"><i></i><span id="linkText">connecting</span></span>
+</header>
+<main>
+  <div class="col">
+    <div class="panel">
+      <h2>Vitals</h2>
+      <div class="vitals">
+        <div class="ring">
+          <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="9"/>
+            <circle id="o2arc" cx="60" cy="60" r="52" fill="none" stroke="#3fd7ff" stroke-width="9" stroke-linecap="butt" stroke-dasharray="326.7" stroke-dashoffset="0" style="transition: stroke-dashoffset .5s, stroke .5s; filter: drop-shadow(0 0 6px currentColor)"/></svg>
+          <div class="c"><div class="num" id="o2">–</div><span>O<sub>2</sub> seconds</span><span id="surface" style="color:#ff6a4d;letter-spacing:.15em"></span></div>
+        </div>
+        <div class="ruler">
+          <svg id="ruler" viewBox="0 0 78 150" preserveAspectRatio="none"></svg>
+          <div class="txt"><span class="lbl">Depth</span><div class="num" id="depth">–<small>m</small></div><span class="lbl" id="zone"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel"><h2>Situation vector</h2><div class="chips" id="flags"></div></div>
+    <div class="panel"><h2>Persona</h2><div class="who" id="who">–</div><div class="stack" id="stack"></div><div class="legend" id="legend"></div></div>
+    <div class="panel"><h2>Dread <small>system escalation</small></h2><div class="meter"><i id="dread" style="width:0%"></i></div><div class="dreadrow"><span id="dreadText">clinical</span><b id="dreadNum">0.00</b></div></div>
+  </div>
+  <div class="col">
+    <div class="panel">
+      <h2>Range rings <small>range only, no bearing</small></h2>
+      <div class="sonar">
+        <svg id="sonar" viewBox="-125 -125 250 250"></svg>
+        <div class="keys">
+          <div class="k threat"><div class="lbl">Nearest threat</div><div class="num" id="threat">–<small>m</small></div><div class="name" id="threatName">none in range</div></div>
+          <div class="k"><div class="lbl">Structure</div><div class="num" id="home">–<small>m</small></div><div class="name">lifepod, base hatch or vehicle</div></div>
+          <div class="k" style="border-color:#3fd7ff"><div class="lbl">Air source</div><div class="num" id="air">–<small>m</small></div><div class="name">plant, tank, generator or vehicle</div></div>
+          <div class="note">Rings at 25, 100, 400 and 1600 m. The PDA knows how far, never which way.</div>
+        </div>
+      </div>
+    </div>
+    <div class="panel"><h2>Oxygen and depth <small>last five minutes</small></h2><div class="plot"><canvas id="life"></canvas></div></div>
+    <div class="panel"><h2>Range history <small>log scale</small></h2><div class="plot"><canvas id="range"></canvas></div></div>
+  </div>
+  <div class="col">
+    <div class="panel"><h2>Transmissions <small id="hintCount"></small></h2><ul class="log" id="hints"><li class="empty">silent so far</li></ul></div>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const fmt = v => v == null ? "–" : Math.round(v).toLocaleString();
+const RINGS = [25, 100, 400, 1600], RMAX = 3000, R = 118;
+const rad = d => R * Math.log10(1 + Math.max(0, d)) / Math.log10(1 + RMAX);
+const font = { family: "JetBrains Mono, Consolas, monospace", size: 10 };
+const grid = { color: "rgba(63,215,255,.08)" }, ticks = { color: "#5d8299", maxTicksLimit: 5, font };
+function chart(id, sets, yOpts, y2Opts) {
+  return new Chart($(id), { type: "line", data: { labels: [], datasets: sets.map(s => ({ ...s, pointRadius: 0, borderWidth: 1.6, tension: .25, spanGaps: false })) },
+    options: { animation: false, responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+      plugins: { legend: { labels: { color: "#8aa5b8", boxWidth: 10, boxHeight: 10, font: { family: "Rajdhani", size: 12 } } } },
+      scales: { x: { display: false }, y: { grid, ticks, position: "left", ...yOpts }, y2: { grid: { display: false }, ticks, position: "right", ...y2Opts } } } });
+}
+const life = chart("life", [{ label: "O2 s", borderColor: "#3fd7ff", yAxisID: "y" }, { label: "depth m", borderColor: "#f0c987", yAxisID: "y2" }],
+  { min: 0, suggestedMax: 120 }, { reverse: true, min: 0, suggestedMax: 500 });
+const range = chart("range", [{ label: "threat m", borderColor: "#ff6a4d", yAxisID: "y" }, { label: "lifepod m", borderColor: "#8aa5b8", yAxisID: "y2" }],
+  { type: "logarithmic", min: 10, max: 3000 }, { type: "logarithmic", min: 10, max: 3000 });
+function ruler(depth) {
+  const max = 500, y = d => 4 + 142 * Math.min(1, d / max);
+  let s = `<rect x="34" y="${y(200)}" width="10" height="${y(max) - y(200)}" fill="rgba(255,106,77,.12)"/>`;
+  s += `<line x1="39" y1="4" x2="39" y2="146" stroke="rgba(63,215,255,.35)"/>`;
+  for (let d = 0; d <= max; d += 100) s += `<line x1="30" x2="48" y1="${y(d)}" y2="${y(d)}" stroke="rgba(63,215,255,.5)"/><text x="52" y="${y(d) + 3}" fill="#5d8299" font-size="8" font-family="JetBrains Mono">${d}</text>`;
+  for (let d = 50; d < max; d += 100) s += `<line x1="35" x2="43" y1="${y(d)}" y2="${y(d)}" stroke="rgba(63,215,255,.3)"/>`;
+  if (depth != null) s += `<polygon points="14,${y(depth) - 5} 26,${y(depth)} 14,${y(depth) + 5}" fill="${depth > 200 ? "#ff6a4d" : "#3fd7ff"}"/><line x1="26" x2="48" y1="${y(depth)}" y2="${y(depth)}" stroke="${depth > 200 ? "#ff6a4d" : "#3fd7ff"}" stroke-width="1.5"/>`;
+  $("ruler").innerHTML = s;
+}
+let sweep = 0;
+function sonar(threat, home) {
+  sweep = (sweep + 3) % 360;
+  let s = RINGS.map(d => `<circle r="${rad(d)}" fill="none" stroke="rgba(63,215,255,.18)"/><text x="3" y="${-rad(d) - 2}" fill="#5d8299" font-size="8" font-family="JetBrains Mono">${d}</text>`).join("");
+  s += `<line x1="-120" x2="120" y1="0" y2="0" stroke="rgba(63,215,255,.08)"/><line y1="-120" y2="120" x1="0" x2="0" stroke="rgba(63,215,255,.08)"/>`;
+  s += `<path d="M0 0 L${120 * Math.cos((sweep - 30) * Math.PI / 180)} ${120 * Math.sin((sweep - 30) * Math.PI / 180)} A120 120 0 0 1 ${120 * Math.cos(sweep * Math.PI / 180)} ${120 * Math.sin(sweep * Math.PI / 180)} Z" fill="rgba(63,215,255,.07)"/>`;
+  if (home != null) s += `<circle r="${rad(home)}" fill="none" stroke="#8aa5b8" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+  if (threat != null) s += `<circle r="${rad(threat)}" fill="none" stroke="#ff6a4d" stroke-width="2" style="filter: drop-shadow(0 0 5px #ff6a4d)"/>`;
+  s += `<circle r="3" fill="#3fd7ff"/>`;
+  $("sonar").innerHTML = s;
+}
+let o2max = 120, t0 = null;
+async function tick() {
+  let d;
+  try { d = await (await fetch("/data")).json(); } catch (e) { $("link").className = "pill lost"; $("linkText").textContent = "no server"; return; }
+  const f = d.frames, last = f[f.length - 1];
+  if (!last) { $("linkText").textContent = "waiting for game"; return; }
+  t0 = t0 ?? f[0].t;
+  const age = Date.now() / 1000 - last.t, live = age < 3;
+  $("link").className = "pill" + (live ? "" : " lost"); $("linkText").textContent = live ? "link live" : `link lost ${Math.round(age)} s`;
+  $("stats").textContent = `${f.length} frames · ${Math.floor((last.t - t0) / 60)}:${String(Math.floor((last.t - t0) % 60)).padStart(2, "0")} elapsed`;
+  o2max = Math.max(o2max, ...f.map(x => x.o2 ?? 0));
+  const frac = last.o2 == null ? 0 : last.o2 / o2max, arc = $("o2arc");
+  arc.style.strokeDashoffset = 326.7 * (1 - frac); arc.style.stroke = arc.style.color = frac < .25 ? "#ff6a4d" : frac < .5 ? "#f0c987" : "#3fd7ff";
+  $("o2").textContent = fmt(last.o2); $("depth").innerHTML = `${fmt(last.depth)}<small>m</small>`;
+  $("zone").textContent = (last.depth > 400 ? "beyond safe depth" : last.depth > 200 ? "deep zone" : last.depth > 20 ? "open water" : "surface") + (last.dark ? " · dark" : "") + (last.time_of_day != null ? ` · ${String(Math.floor(last.time_of_day)).padStart(2, "0")}:${String(Math.floor(last.time_of_day % 1 * 60)).padStart(2, "0")}` : "");
+  ruler(last.depth);
+  $("threat").innerHTML = `${fmt(last.threat_dist)}<small>m</small>`;
+  $("threatName").textContent = last.threat ? last.threat.replace(/^BP_|_C$/g, "").replace(/([a-z])([A-Z])/g, "$1 $2") + (last.zone ? ` · ${last.zone}` : "") + (last.ttc != null ? ` · contact in ${last.ttc}s` : "") + (last.threat_rel && last.zone === "contact" ? ` · ${last.threat_rel}` : "") : "none in range";
+  $("surface").textContent = last.can_surface === false ? "surface out of reach" : last.can_surface ? "surface reachable" : "";
+  $("home").innerHTML = `${fmt(last.dist_home)}<small>m</small>`; $("air").innerHTML = `${fmt(last.air_dist)}<small>m</small>`;
+  sonar(last.threat_dist, last.dist_home);
+  $("flags").innerHTML = Object.entries(last.flags).map(([k, v]) => `<span class="chip ${v ? "on" : ""}">${k.replace("_", " ")}</span>`).join("");
+  $("who").textContent = last.persona; $("who").style.color = { explorer: "#f0c987", survivor: "#ff6a4d", navigator: "#3fd7ff" }[last.persona];
+  $("stack").innerHTML = Object.entries(last.weights).map(([k, v]) => `<i class="${k}" style="width:${v * 100}%"></i>`).join("");
+  $("legend").innerHTML = Object.entries(last.weights).map(([k, v]) => `<span class="${k}">${k} <b>${v.toFixed(2)}</b></span>`).join("");
+  $("dread").style.width = (last.dread * 100) + "%"; $("dread").style.setProperty("--glow", (last.dread * 18) + "px");
+  $("dreadText").textContent = last.dread < .33 ? "clinical" : last.dread < .66 ? "uneasy" : "ominous"; $("dreadNum").textContent = last.dread.toFixed(2);
+  document.body.classList.add("dread"); document.body.style.setProperty("--dread-tint", (last.dread * .10).toFixed(3));
+  const labels = f.map(x => x.t);
+  life.data.labels = labels; life.data.datasets[0].data = f.map(x => x.o2); life.data.datasets[1].data = f.map(x => x.depth);
+  life.options.scales.y.suggestedMax = o2max; life.update();
+  range.data.labels = labels; range.data.datasets[0].data = f.map(x => x.threat_dist); range.data.datasets[1].data = f.map(x => x.dist_home); range.update();
+  $("hintCount").textContent = d.hints.length ? `${d.hints.length} lines` : "";
+  $("hints").innerHTML = d.hints.slice().reverse().map(h => { const s = Math.max(0, h.t.t - t0);
+    return `<li class="${h.source} ${h.topic}"><div class="line">${h.text}</div><div class="meta">${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")} · <b>${h.topic}</b> · ${h.persona} · ${h.source === "llm" ? "model" : "template"} ${h.latency_s}s · dread ${h.dread} · O2 ${fmt(h.t.o2)}s · ${fmt(h.t.depth)}m</div></li>`; }).join("")
+    || `<li class="empty">silent so far</li>`;
+}
+setInterval(tick, 1000); tick();
+</script>
+</body>
+</html>
