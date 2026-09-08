@@ -65,12 +65,19 @@ def test_critical_and_priority() -> None:
 
 
 def test_guards() -> None:
-    fathom.ask = lambda llm, system, user: "Oxygen at 20%. Turn left."  # type: ignore[assignment]
+    t = {**CALM, "o2": 10.0, "depth": 5.0}
+    for bad in ["Oxygen at 20%. Turn left.", "Something vast stirs in the black.", "The abyss breathes."]:
+        fathom.ask = lambda llm, system, user, bad=bad: bad  # type: ignore[assignment]
+        try:
+            text, source, _ = fathom.hint(t, fathom.situation(t), "oxygen", "ollama")
+        finally:
+            fathom.ask = ASK
+        assert source == "fallback" and text == fathom.FALLBACK["oxygen"], bad
+    fathom.ask = lambda *a: "Oxygen reserve low. Begin ascent."  # type: ignore[assignment]
     try:
-        text, source, _ = fathom.hint({**CALM, "o2": 10.0}, fathom.situation({**CALM, "o2": 10.0}), "oxygen", "ollama")
+        assert fathom.hint(t, fathom.situation(t), "oxygen", "ollama")[1] == "llm"
     finally:
         fathom.ask = ASK
-    assert source == "fallback" and text == fathom.FALLBACK["oxygen"]
 
 
 def test_fallback() -> None:
@@ -88,6 +95,9 @@ def test_silence_compound_and_dread() -> None:
     long = rows["long_dive"]["hints"]
     assert long[0]["topic"] == "depth" and long[-1]["topic"] == "ambient" and long[-1]["dread"] >= fathom.AMBIENT_DREAD
     assert all(b["dread"] >= a["dread"] for a, b in zip(long, long[1:]))  # dread only climbs down there
+    ambient = [h["text"] for h in long if h["topic"] == "ambient"]
+    assert len(ambient) == len(set(ambient)) and all(a in fathom.AMBIENT_LINES for a in ambient)  # pooled, no repeats
+    assert all(h["source"] == "pool" for h in long if h["topic"] == "ambient")
 
 
 def test_zones_and_reach() -> None:
@@ -127,7 +137,7 @@ def test_phantom() -> None:
 
 
 def test_tone() -> None:
-    assert fathom.tone(0.0).startswith("Tone: a clinical") and fathom.tone(0.9).startswith("Tone: ominous")
+    assert fathom.tone(0.0).startswith("Tone: a calm") and fathom.tone(0.9).startswith("Tone: flat")
 
 
 def test_analyze() -> None:

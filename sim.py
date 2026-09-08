@@ -80,15 +80,15 @@ def report(rows: list[dict[str, Any]]) -> None:
         if not r["hints"]:
             print("  (silent)")
     hints = [h for r in rows for h in r["hints"]]
-    critical = [h for h in hints if h["topic"] in fathom.CRITICAL]  # templates by design, instant
-    modelled = [h for h in hints if h["topic"] not in fathom.CRITICAL]
+    critical = [h for h in hints if h["topic"] in fathom.CRITICAL | fathom.POOLED]  # by design, no model
+    modelled = [h for h in hints if h["topic"] not in fathom.CRITICAL | fathom.POOLED]
     fallback = sum(h["source"] == "fallback" for h in modelled)
     print("\nsummary vs poster targets")
     print(f"  relevance        {sum(r['relevant'] for r in rows)}/{len(rows)}   target 7/8 on the original eight")
     print(f"  persona tracking {sum(r['tracked'] for r in rows)}/{len(rows)}   target 8/8 on the original eight")
     print(f"  phantom lines    {sum(h['topic'] == 'phantom' for h in hints)}   (at most one per dive, by design)")
     print(f"  fallback rate    {fallback}/{len(modelled)} = {fallback / max(len(modelled), 1):.0%}   target <= 14% "
-          f"(plus {len(critical)} critical lines that skip the model by design)")
+          f"(plus {len(critical)} critical and pooled lines that skip the model by design)")
     print(f"  median latency   {statistics.median(h['latency_s'] for h in modelled):.3f}s   target 1.2 s llm / 0.3 s fallback")
 
 

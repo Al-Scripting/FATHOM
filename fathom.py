@@ -31,7 +31,7 @@ DASHBOARD_PORT = 8765
 
 OLLAMA_MODEL = "gemma3:4b"  # llama3.2:3b measured 0.23 s but invented readings in 30% of lines
 OLLAMA_URL = "http://127.0.0.1:11434/api/chat"  # not localhost: the IPv6 attempt costs 2 s on Windows
-OLLAMA_OPTIONS = {"num_predict": 30, "temperature": 0.4, "num_ctx": 1024}  # tiny KV cache, stays on GPU
+OLLAMA_OPTIONS = {"num_predict": 30, "temperature": 0.3, "num_ctx": 1024}  # tiny KV cache, stays on GPU
 CLAUDE_MODEL = "claude-opus-5"
 BUDGET_S = 2.5  # in-game the GPU is shared with the game: 1.0 to 1.6 s per hint, vs 0.25 s in the sim
 COOLDOWN_S = 10.0
@@ -66,24 +66,32 @@ DREAD_PER_HINT = 0.15  # every crisis the PDA had to speak about
 DREAD_DECAY_PER_S = 1 / 120  # two minutes at the surface or by a structure to calm down
 AMBIENT_S = 180.0  # quiet this long, deep, with dread high: one unprompted line
 AMBIENT_DREAD = 0.6
-TONES = [(0.33, "Tone: a clinical instrument."), (0.66, "Tone: uneasy, clipped."),
-         (9.0, "Tone: ominous. Imply what you cannot confirm. Never name it.")]
+TONES = [(0.33, "Tone: a calm instrument."), (0.66, "Tone: clipped. Shorter than usual."),
+         (9.0, "Tone: flat and factual about a reading that should not be there. Report the reading, not a feeling.")]
 
 STYLES = {
     "survivor": "Terse imperative. The single most urgent thing, nothing else.",
     "navigator": "One orientation cue tied to what the diver did: their depth, the way they came, the light. No bearing.",
-    "explorer": "Quiet observation. Curiosity with an undertone of unease. Prefer to say less.",
+    "explorer": "One plain observation about the surroundings, stated as a sensor reading.",
 }
 SYSTEM = (
-    "You are the PDA of a lone diver on an alien ocean world. Reply with one in-world line of at most "
-    f"{MAX_WORDS} words and nothing else: no quotes, no name, no explanation. Never give bearings, coordinates, "
-    "numbers, or species names. Never reassure. State one fact or one instruction, in this register:\n"
+    "You are the PDA of a lone diver on an alien ocean world: a diagnostic instrument that reports readings and "
+    f"gives one instruction. Reply with one line of at most {MAX_WORDS} words and nothing else: no quotes, no name, "
+    "no explanation. Plain English. Short declarative sentences. No metaphor, no poetry, no adjectives about "
+    "darkness or size. Never give bearings, coordinates, numbers, or species names. Never reassure. Examples of "
+    "the register:\n"
     "Oxygen critical. Ascend.\n"
-    "Detecting a leviathan class lifeform. Are you certain whatever you're doing is worth it?\n"
+    "Detecting a leviathan class lifeform in the region. Are you certain whatever you're doing is worth it?\n"
+    "Acoustic contact. Unclassified.\n"
+    "Large biomass reading. Source unresolved.\n"
     "The last known structure is behind you, and above.\n"
     "Persona: {persona}. {style} {tone} Say only what the situation says. Do not invent equipment, places, or "
     "readings. No numbers."
 )
+# A small model reaches for these when told to be ominous. They are poetry, not readings; the line is discarded.
+PURPLE = {"stirs", "stir", "breathes", "breathe", "consumes", "consume", "devours", "devour", "abyss", "void",
+          "whisper", "whispers", "lurks", "lurking", "shadow", "shadows", "darkness", "eternal", "ancient",
+          "hunger", "hungers", "black", "blackness", "vast", "maw", "dread", "nightmare", "watches", "watching"}
 READY = "Companion link established. Monitoring vitals and surroundings."
 # Critical topics never wait for the model or the synthesizer: the template plays from the cache at once.
 CRITICAL = {"oxygen_critical", "threat_contact", "phantom"}
@@ -109,6 +117,31 @@ FALLBACK_NO_SURFACE = {  # the surface is further than the air will carry the di
 TOPIC = {"oxygen": "the oxygen", "oxygen_critical": "the oxygen", "threat": "the creature",
          "threat_contact": "the creature", "lost": "the way back", "depth": "the depth",
          "ambient": "what it senses in the dark", "phantom": "what it senses in the dark", None: "the situation"}
+# Unprompted lines are not generated: a 4B model asked to be unsettling writes poetry, and asked to be plain writes
+# nothing. These are plain readouts that unsettle by implication, the original PDA's trick. Rotated without repeats.
+POOLED = {"ambient"}
+AMBIENT_LINES = [
+    "Acoustic contact. Unclassified.",
+    "Large biomass reading. Source unresolved.",
+    "Motion on the sonar. Nothing on the visual.",
+    "Something passed the sonar edge. Contact lost.",
+    "Water temperature rising. No known source.",
+    "Biological signature matches nothing on record.",
+    "Multiple contacts. Range indeterminate.",
+    "Ambient light below detection. Switching to sonar.",
+    "Vital signs elevated. Cause unknown.",
+    "Sensor sweep incomplete. Retrying.",
+    "Recording. In case.",
+]
+# A model line must be about its topic. One of these words, or the template plays.
+TOPIC_WORDS = {
+    "oxygen": {"oxygen", "air", "ascend", "ascent", "breath", "breathing", "surface", "replenish", "reserve", "tank"},
+    "threat": {"contact", "movement", "motion", "lifeform", "biomass", "signature", "creature", "large", "sonar",
+               "proximity", "still", "evasive", "predator", "hostile", "approaching"},
+    "lost": {"structure", "structures", "descent", "path", "light", "surface", "way", "return", "route", "heading",
+             "retrace", "ascend", "back", "lifepod", "shelter"},
+    "depth": {"pressure", "depth", "hull", "crush", "ascend", "ascent", "descent", "deep", "suit", "rating"},
+}
 BEARINGS = {"left", "right", "north", "south", "east", "west", "degrees", "meters", "metres", "percent"}
 # Flag -> topic, most urgent first: when several flags rise on the same frame the first wins.
 FLAG_TOPIC = {"threat_contact": "threat_contact", "oxygen_critical": "oxygen_critical", "threat_near": "threat",
@@ -308,8 +341,13 @@ def hint(
             text = ask(llm, system, describe(t, topic, o2max)).strip().strip('"')
             if any(c.isdigit() for c in text):  # the model was given no numbers, so any number is invented
                 raise ValueError(f"invented a reading: {text!r}")
-            if BEARINGS & set(text.lower().replace(",", " ").replace(".", " ").split()):
+            words = set(text.lower().replace(",", " ").replace(".", " ").split())
+            if BEARINGS & words:
                 raise ValueError(f"gave a bearing: {text!r}")
+            if PURPLE & words:
+                raise ValueError(f"went purple: {text!r}")
+            if topic in TOPIC_WORDS and not TOPIC_WORDS[topic] & words:
+                raise ValueError(f"off topic for {topic}: {text!r}")
             if 0 < len(text.split()) <= MAX_WORDS:
                 return text, "llm", time.perf_counter() - start
             print(f"[fathom] {llm} over {MAX_WORDS} words: {text!r}", file=sys.stderr)
@@ -348,11 +386,18 @@ class Fathom:
         self.o2max = O2_MAX_MIN
         self.phantoms = 0
         self.rng = random.Random()
+        self.ambient_pool: list[str] = []
         self.frames: deque[dict[str, Any]] = deque(maxlen=600)  # five minutes at 2 Hz, for the dashboard
         self.hints: list[dict[str, Any]] = []
         self.session = SESSIONS / (time.strftime("%Y%m%d-%H%M%S") + ".jsonl")
         if llm == "ollama":
             warm_ollama()
+
+    def next_ambient(self) -> str:
+        if not self.ambient_pool:
+            self.ambient_pool = list(AMBIENT_LINES)
+            self.rng.shuffle(self.ambient_pool)
+        return self.ambient_pool.pop()
 
     def update_dread(self, t: dict[str, Any], now: float, zone_rate: float) -> None:
         dt = max(0.0, now - self.prev_t) if self.prev_t is not None else 0.0
@@ -387,7 +432,10 @@ class Fathom:
         elif quiet_and_deep and self.dread >= AMBIENT_DREAD:
             topic = "ambient"
         if topic:
-            text, source, latency = hint(t, sit, topic, self.llm, self.dread, self.o2max)
+            if topic in POOLED:
+                text, source, latency = self.next_ambient(), "pool", 0.0
+            else:
+                text, source, latency = hint(t, sit, topic, self.llm, self.dread, self.o2max)
             self.last_spoke = now
             if topic not in ("ambient", "phantom"):
                 self.dread = clamp(self.dread + DREAD_PER_HINT)
