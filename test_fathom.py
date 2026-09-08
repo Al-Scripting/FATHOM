@@ -28,10 +28,13 @@ def test_why_speak() -> None:
     assert fathom.why_speak(None, calm, 0.0, 0.0) is None  # nothing wrong, stay silent
     assert fathom.why_speak(calm, low, 0.0, 1.0) == "oxygen"  # flag rose
     assert fathom.why_speak(low, low, 0.0, 1.0) is None  # same crisis, already said it
-    lost = fathom.situation({**CALM, "o2": 10.0, "dist_home": 2200.0})  # dominant signal flips, no new flag
-    prev = {**low, "flags": {**low["flags"], "player_lost": True}}
+    lost = fathom.situation({**CALM, "o2": 25.0, "dist_home": 2200.0})  # air back above the line, still far out
+    prev = {**low, "flags": {**low["flags"], "player_lost": True}}  # persona flips survivor -> navigator, no new flag
+    assert lost["persona"] == "navigator"
     assert fathom.why_speak(prev, lost, 0.0, 5.0) is None  # inside cooldown
-    assert fathom.why_speak(prev, lost, 0.0, 15.0) == "lost"
+    assert fathom.why_speak(prev, lost, 0.0, 25.0) == "lost"
+    same = {**lost, "persona": "survivor"}  # the strongest signal moving on its own is not worth a line
+    assert fathom.why_speak(prev, same, 0.0, 25.0) is None
 
 
 def test_describe() -> None:
@@ -75,6 +78,7 @@ def test_guards() -> None:
         finally:
             fathom.ask = ASK
         assert source == "fallback" and text == fathom.FALLBACK["oxygen"], bad
+    assert fathom.hint(t, fathom.situation(t), "lost", None)[1] == "fallback"  # no model, the template
     fathom.ask = lambda *a: "Caution: oxygen reserve low. Consider ascending."  # type: ignore[assignment]
     try:
         assert fathom.hint(t, fathom.situation(t), "oxygen", "ollama")[1] == "llm"
@@ -127,11 +131,37 @@ def test_prefetch() -> None:
             fathom.time.sleep(0.05)
         assert f.prefetched["oxygen"][1] == "Warning: oxygen reserve low. Consider ascending."
         clock["t"] = 20.0
-        out = f.step({**CALM, "o2": 20.0})  # 44%: the flag rises and the ready line plays at zero latency
-        assert out and out["topic"] == "oxygen" and out["source"] == "llm+prefetch" and out["latency_s"] == 0
+        out = f.step({**CALM, "o2": 20.0})  # 44%: the flag rises and the ready line plays
+        assert out and out["topic"] == "oxygen" and out["source"] == "llm+prefetch"
+        # No ready line: the model is never on the critical path, the template plays at once.
+        g = fathom.Fathom("ollama", speak_fn=lambda *_: None, now=lambda: 0.0, log=False)
+        g.o2max = 45.0
+        g.prefetched.clear()
+        out = g.step({**CALM, "o2": 20.0})
+        assert out and out["source"] == "fallback" and out["latency_s"] == 0 and out["text"] == fathom.FALLBACK["oxygen"]
     finally:
         fathom.ask = ASK
         fathom.pda_voice.generate = old
+
+
+def test_speaker() -> None:
+    played: list[str] = []
+    spoken: list[str] = []
+    fathom.pda_voice.CACHE.mkdir(exist_ok=True)
+    s = fathom.pda_voice.Speaker(player=lambda p: (played.append(p.name), fathom.time.sleep(0.3)),
+                                 fallback=lambda t: spoken.append(t))
+    line = fathom.FALLBACK["oxygen_critical"]
+    if fathom.pda_voice.cached(line) is None:  # cache miss on a fresh machine: the Windows voice covers it
+        s.say(line)
+        fathom.time.sleep(0.3)
+        assert spoken == [line]
+        return
+    s.say(line)
+    s.say(line)  # queued behind the first
+    fathom.time.sleep(0.1)
+    s.say(fathom.FALLBACK["threat_contact"], urgent=True)  # empties the queue and cuts the current line
+    fathom.time.sleep(1.0)
+    assert s.spoken[-1] == fathom.FALLBACK["threat_contact"] and len(s.spoken) == 2
 
 
 def test_zones_and_reach() -> None:

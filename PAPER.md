@@ -67,11 +67,21 @@ home", and applies only once life is at risk, so a creature patrolling at the ed
 a survivalist. Each persona has a style instruction; a tone instruction and an escalation word (routine, elevated,
 high, critical) are derived from dread and given to the model with the situation.
 
-**Latency.** Cached lines (templates and pools) play at 0 s. A model line costs about a second to write and five
-to ten to synthesize at the voice generator, which in the first dives put an oxygen line about 40% at 30%. Oxygen
-and the way back are slow-moving, so their lines are now prefetched: written and synthesized while the situation
-approaches the threshold, keyed on what the line depends on (air source within reach, surface reachable), and
-rewritten if that changes before the trigger.
+**Latency.** Every line the PDA can say is cached in the voice before it is needed. A model line costs about a
+second to write (up to two with the GPU shared) and five to ten to synthesize at the voice generator, which in the
+first dives put an oxygen line about 40% at 30%. The model is therefore never on the critical path: oxygen and
+way-back lines are prefetched, written and synthesized while the situation approaches the threshold, keyed on
+what the line depends on (air source within reach, surface reachable), rewritten if that changes, and at the
+trigger the ready line plays or the template does. Playback goes through the Windows sound API (no process
+start) with a latest-wins queue: a line older than six seconds is dropped as describing a moment that has passed,
+and a critical line cuts off whatever is playing. In the recording that motivated this, three creature lines had
+queued behind one another and the third played after the leviathan had left.
+
+**A first real dive (2026-09-07, 213 s).** Collector Leviathan to 10 m, air to 41 s of 120, depth to 475 m, nine
+lines. Behavioural proxies against 29 random quiet windows: after every creature line the diver's speed dropped by
+3.4 m/s and they held still for 10 to 14 s (baseline: no speed change); after both oxygen lines they ascended
+(baseline ascent rate 0.03); they turned back only after the contact line. One diver, one dive: a description of
+the method working, not a result.
 
 **Trigger policy.** Silence is the default. A line fires when a flag rises (most urgent first), or when the persona
 or the dominant signal changes after a 10 s cooldown. Unprompted lines: after 180 s of silence below 200 m with

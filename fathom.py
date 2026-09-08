@@ -34,7 +34,7 @@ OLLAMA_URL = "http://127.0.0.1:11434/api/chat"  # not localhost: the IPv6 attemp
 OLLAMA_OPTIONS = {"num_predict": 30, "temperature": 0.2, "num_ctx": 1024}  # tiny KV cache, stays on GPU
 CLAUDE_MODEL = "claude-opus-5"
 BUDGET_S = 2.5  # in-game the GPU is shared with the game: 1.0 to 1.6 s per hint, vs 0.25 s in the sim
-COOLDOWN_S = 10.0
+COOLDOWN_S = 20.0
 MAX_WORDS = 18
 
 # Thresholds. Oxygen is a fraction of the largest capacity seen this session (45 s bare, 120 s with a tank), because
@@ -110,7 +110,8 @@ OPENERS = ("warning", "caution", "emergency", "attention", "detecting", "scans",
 # A small model reaches for these when told to be ominous. They are poetry, not readings; the line is discarded.
 PURPLE = {"stirs", "stir", "breathes", "breathe", "consumes", "consume", "devours", "devour", "abyss", "void",
           "whisper", "whispers", "lurks", "lurking", "shadow", "shadows", "darkness", "eternal", "ancient",
-          "hunger", "hungers", "black", "blackness", "vast", "maw", "dread", "nightmare", "watches", "watching"}
+          "hunger", "hungers", "black", "blackness", "vast", "maw", "dread", "nightmare", "watches", "watching",
+          "escalation"}  # the last is the label the model is given, and must not read back
 READY = "Link established. Emergency companion online. Primary directive: keep you alive on an alien world."
 # Critical topics never wait for the model or the synthesizer: the template plays from the cache at once.
 CRITICAL = {"oxygen_critical", "threat_contact", "phantom"}
@@ -328,13 +329,13 @@ def situation(t: dict[str, Any], o2max: float = O2_MAX_MIN, closing: float = 0.0
 
 def why_speak(prev: dict[str, Any] | None, cur: dict[str, Any], last_spoke: float, now: float) -> str | None:
     """Silence is the default. Returns the topic to speak about: the most urgent flag that just rose, or, outside
-    the cooldown, the dominant signal when the persona or the dominant signal changed. None means stay quiet."""
+    the cooldown, the dominant signal when the persona changed. None means stay quiet."""
     if not any(cur["flags"].values()):
         return None
     rose = [FLAG_TOPIC[k] for k in FLAG_TOPIC if cur["flags"][k] and not (prev and prev["flags"][k])]
     if rose:
         return rose[0]
-    if now - last_spoke >= COOLDOWN_S and (cur["persona"], cur["dominant"]) != (prev["persona"], prev["dominant"]):
+    if now - last_spoke >= COOLDOWN_S and cur["persona"] != prev["persona"]:
         return cur["dominant"]
     return None
 
@@ -425,9 +426,9 @@ def hint(
     return template(topic, t), "fallback", time.perf_counter() - start
 
 
-def speak(text: str, dread: float = 0.0) -> None:
-    """PDA voice in the background so a synthesis never delays the next frame. Dread degrades the audio."""
-    threading.Thread(target=pda_voice.say, args=(text, dread), daemon=True).start()
+def speak(text: str, dread: float = 0.0, urgent: bool = False) -> None:
+    """Hand the line to the speaker: latest wins, stale lines are dropped, urgent lines cut in."""
+    pda_voice.SPEAKER.say(text, dread, urgent)
 
 
 def append(path: Path, rec: dict[str, Any]) -> None:
@@ -442,7 +443,7 @@ class Fathom:
     def __init__(
         self,
         llm: str | None = "ollama",
-        speak_fn: Callable[[str, float], None] = speak,
+        speak_fn: Callable[..., None] = speak,
         now: Callable[[], float] = time.monotonic,
         log: bool = True,
     ) -> None:
@@ -456,7 +457,7 @@ class Fathom:
         self.phantoms = 0
         self.rng = random.Random()
         self.pools: dict[str, list[str]] = {}
-        self.prefetched: dict[str, tuple[tuple[Any, ...], str, str]] = {}  # topic -> (key, text, source)
+        self.prefetched: dict[str, tuple[tuple[Any, ...], str, str, float]] = {}  # topic -> (key, text, source, s)
         self.prefetching: set[str] = set()
         self.frames: deque[dict[str, Any]] = deque(maxlen=600)  # five minutes at 2 Hz, for the dashboard
         self.hints: list[dict[str, Any]] = []
@@ -478,9 +479,10 @@ class Fathom:
         return (topic, air_near(t), can_surface(t))
 
     def maybe_prefetch(self, t: dict[str, Any], sit: dict[str, Any]) -> None:
-        """A model line costs a second to write and several to synthesize. Oxygen and the way back move slowly,
-        so their lines are written and cached while the situation is still approaching the threshold."""
-        if not self.llm or not self.log:
+        """The model is never on the critical path. Oxygen and the way back move slowly, so their lines are
+        written and synthesized while the situation is still approaching the threshold; at the trigger the ready
+        line plays, or the template does. In the offline sim this runs inline and skips the synthesizer."""
+        if not self.llm:
             return
         o2f = None if t.get("o2") is None else t["o2"] / self.o2max
         home = t.get("dist_home")
@@ -490,14 +492,19 @@ class Fathom:
             key = self.prefetch_key(topic, t)
             if wanted and topic not in self.prefetching and self.prefetched.get(topic, (None,))[0] != key:
                 self.prefetching.add(topic)
-                threading.Thread(target=self.prefetch, args=(topic, key, dict(t), sit), daemon=True).start()
+                if self.log:
+                    threading.Thread(target=self.prefetch, args=(topic, key, dict(t), sit), daemon=True).start()
+                else:
+                    self.prefetch(topic, key, dict(t), sit, synthesize=False)
 
-    def prefetch(self, topic: str, key: tuple[Any, ...], t: dict[str, Any], sit: dict[str, Any]) -> None:
+    def prefetch(self, topic: str, key: tuple[Any, ...], t: dict[str, Any], sit: dict[str, Any],
+                 synthesize: bool = True) -> None:
         try:
-            text, source, _ = hint(t, sit, topic, self.llm, self.dread, self.o2max)
-            pda_voice.generate(text)
-            self.prefetched[topic] = (key, text, source)
-        except Exception as e:  # a failed prefetch only means the trigger pays the full price
+            text, source, latency = hint(t, sit, topic, self.llm, self.dread, self.o2max)
+            if synthesize:
+                pda_voice.generate(text)
+            self.prefetched[topic] = (key, text, source, latency)
+        except Exception as e:  # a failed prefetch only means the template plays
             print(f"[fathom] prefetch of {topic} failed: {e!r}", file=sys.stderr)
         finally:
             self.prefetching.discard(topic)
@@ -543,9 +550,11 @@ class Fathom:
             if topic in POOLED:
                 text, source, latency = self.next_pooled(topic, t), "pool", 0.0
             elif ready and ready[0] == self.prefetch_key(topic, t):
-                text, source, latency = ready[1], ready[2] + "+prefetch", 0.0
+                text, source, latency = ready[1], ready[2] + "+prefetch", ready[3]  # the write cost, paid earlier
+            elif topic in MODEL_TOPICS:
+                text, source, latency = template(topic, t), "fallback", 0.0  # no ready line: the template, now
             else:
-                text, source, latency = hint(t, sit, topic, self.llm, self.dread, self.o2max)
+                text, source, latency = hint(t, sit, topic, None, self.dread, self.o2max)
             self.last_spoke = now
             if topic not in ("ambient", "phantom"):
                 self.dread = clamp(self.dread + DREAD_PER_HINT)
@@ -554,7 +563,7 @@ class Fathom:
             self.hints.append(out)
             if self.log:
                 append(TRACE, out)
-            self.speak(text, self.dread)
+            self.speak(text, self.dread, topic in CRITICAL)
         # wall-clock t with sub-second resolution: the mod's own t is whole seconds and analyze.py needs spacing
         frame = {**t, "t": time.time(), "flags": sit["flags"], "weights": sit["weights"], "persona": sit["persona"],
                  "dominant": sit["dominant"], "dread": round(self.dread, 3), "o2max": self.o2max, "dark": is_dark(t),

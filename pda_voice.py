@@ -8,13 +8,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import queue
 import subprocess
 import sys
 import threading
 import time
 import urllib.request
+import wave
+import winsound
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable
 
 SITE = "https://subnauticapdavoice.com"
 CACHE = Path(__file__).parent / "voice_cache"
@@ -51,9 +54,28 @@ def generate(text: str) -> Path:
     return path
 
 
+def cached(text: str) -> Path | None:
+    path = CACHE / (hashlib.sha1(text.encode("utf-8")).hexdigest()[:16] + ".wav")
+    return path if path.exists() else None
+
+
+def duration(path: Path) -> float:
+    with wave.open(str(path), "rb") as w:
+        return w.getnframes() / w.getframerate()
+
+
+_cut = threading.Event()  # set to cut whatever is playing
+
+
 def play(path: Path) -> None:
-    cmd = f"(New-Object Media.SoundPlayer '{path}').PlaySync()"
-    subprocess.run(["powershell", "-NoProfile", "-Command", cmd], check=True)
+    """Play a WAV through the Windows sound API: no process to start, and it can be cut off mid-line."""
+    _cut.clear()
+    winsound.PlaySound(str(path), winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT)
+    end = time.monotonic() + duration(path)
+    while time.monotonic() < end:
+        if _cut.wait(0.05):
+            winsound.PlaySound(None, winsound.SND_PURGE)
+            return
 
 
 def sapi(text: str) -> None:
@@ -123,6 +145,51 @@ def say(text: str, dread: float = 0.0) -> None:
         except Exception as e:  # any failure on the network or the site: the line must still be heard
             print(f"[voice] PDA voice failed ({e!r}), using the Windows voice", file=sys.stderr)
             sapi(text)
+
+
+STALE_S = 6.0  # a queued line older than this describes a moment that has passed; it is dropped
+
+
+class Speaker:
+    """One worker, latest wins. A line waits its turn only while it is still true; an urgent line cuts the current
+    one off and empties the queue. An uncached line is spoken by the Windows voice at once rather than waited for,
+    and fetched in the background so it is the PDA voice next time."""
+
+    def __init__(self, player: Callable[[Path], None] = play, fallback: Callable[[str], None] = sapi) -> None:
+        self.player, self.fallback = player, fallback
+        self.queue: queue.Queue[tuple[float, str, float]] = queue.Queue()
+        self.spoken: list[str] = []
+        threading.Thread(target=self.run, daemon=True).start()
+
+    def say(self, text: str, dread: float = 0.0, urgent: bool = False) -> None:
+        if urgent:
+            while not self.queue.empty():
+                try:
+                    self.queue.get_nowait()
+                except queue.Empty:
+                    break
+            _cut.set()
+        self.queue.put((time.monotonic(), text, dread))
+
+    def run(self) -> None:
+        while True:
+            queued, text, dread = self.queue.get()
+            if time.monotonic() - queued > STALE_S:
+                print(f"[voice] dropped, too late: {text}", file=sys.stderr)
+                continue
+            path = cached(text)
+            try:
+                if path is None:
+                    threading.Thread(target=generate, args=(text,), daemon=True).start()
+                    self.fallback(text)
+                else:
+                    self.player(glitch(path, dread) if dread >= GLITCH_DREAD else path)
+                self.spoken.append(text)
+            except Exception as e:  # never let one bad file stop the voice
+                print(f"[voice] playback failed ({e!r})", file=sys.stderr)
+
+
+SPEAKER = Speaker()
 
 
 def prewarm(lines: Iterable[str]) -> None:

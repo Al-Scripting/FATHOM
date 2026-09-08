@@ -7,8 +7,8 @@
   <img alt="UE4SS" src="https://img.shields.io/badge/mod-UE4SS_Lua-0b2a44?style=flat-square&labelColor=04101c&color=3fd7ff">
   <img alt="Ollama" src="https://img.shields.io/badge/LLM-local_Ollama-0b2a44?style=flat-square&labelColor=04101c&color=f0c987">
   <img alt="voice" src="https://img.shields.io/badge/voice-original_PDA-0b2a44?style=flat-square&labelColor=04101c&color=ff6a4d">
-  <img alt="latency" src="https://img.shields.io/badge/model_line-1.2_s-0b2a44?style=flat-square&labelColor=04101c&color=3fd7ff">
-  <img alt="fallback" src="https://img.shields.io/badge/fallback-0%25-0b2a44?style=flat-square&labelColor=04101c&color=3fd7ff">
+  <img alt="latency" src="https://img.shields.io/badge/trigger_to_voice-0_s-0b2a44?style=flat-square&labelColor=04101c&color=3fd7ff">
+  <img alt="fallback" src="https://img.shields.io/badge/model_lines-prefetched-0b2a44?style=flat-square&labelColor=04101c&color=3fd7ff">
 </p>
 
 <p align="center"><i>
@@ -128,9 +128,9 @@ What the poster promised, what the first dives exposed, what the system does now
 <td>Every live pawn whose class name matches the wiki's predator roster is tracked by pattern, so creatures whose exact class is still unknown are caught too. Half a predator's range counts double, the same zones apply, and the lines come from the databank's own register: <i>"Assessment: avoid or distract."</i></td>
 </tr>
 <tr>
-<td><b>Model lines arriving seconds late</b></td>
-<td>The model took a second and the voice generator five to ten more, so an oxygen line about 40% landed at 30%.</td>
-<td>Oxygen and the way back move slowly, so their lines are written and synthesized while the situation is still approaching the threshold, and play at zero latency when it crosses. If the situation changes in between, the line is written again. Everything else was already cached.</td>
+<td><b>Lines arriving after the moment</b></td>
+<td>Each line started its own PowerShell process to play, lines queued behind one another, and a model line waited a second for the model and five to ten more for the voice generator. Three creature lines fired in twenty seconds and the third played half a minute after the leviathan had gone.</td>
+<td>Playback goes through the Windows sound API with nothing to start. The queue is latest-wins: a line older than six seconds is dropped as no longer true, and a critical line cuts off whatever is playing. The model is never on the critical path: oxygen and way-back lines are written and synthesized while the situation is still approaching the threshold, and at the trigger the ready line plays, or the template does, at once.</td>
 </tr>
 <tr>
 <td><b>Oxygen at 29 s, 416 m down</b></td>
@@ -196,7 +196,11 @@ reachable-surface test, and the way back. Creature, depth and quiet-minute lines
 in the register, rotated without repeats, at zero latency, because a small model asked about a lifeform describes
 its anatomy, asked about depth loses the thread, and asked to be unsettling writes poetry. The register itself, and
 where it came from, is in [docs/pda_register.md](docs/pda_register.md).
-Silence is the default: a line fires when a flag crosses, or when the strongest signal changes after a 10 s cooldown.
+
+The model is never on the critical path. Its two situations move slowly, so their lines are written and
+synthesized ahead of the threshold, keyed on what they depend on, and rewritten if that changes. At the trigger
+the ready line plays, or the template does. Every line the PDA can say is cached in the voice before it is needed.
+Silence is the default: a line fires when a flag crosses, or when the persona changes after a 20 s cooldown.
 
 Dread per second: +1/600 below 200 m, +1/900 in the dark, +1/300 · +1/120 · +1/40 by zone, +0.15 per crisis line,
 −1/120 at the surface or by a structure. Tone changes at 0.33 and 0.66. Audio degrades above 0.5.
@@ -222,13 +226,23 @@ and from real dives.
 |---|---|---|
 | Relevance | 7 / 8 | 11 / 11 |
 | Persona tracking in compound crises | 8 / 8 | 11 / 11 |
-| Fallback rate | ≤ 14% | 0% of the model lines, oxygen and the way back (the rest are critical or pooled and skip the model by design) |
-| Median latency, model line | 1.2 s | 1.2 s with another game holding the GPU, 0.25 to 0.7 s with it idle |
-| Critical and pooled line latency | | 0 s, cached |
+| Fallback rate | ≤ 14% | 33% of the model lines in the last live run, two of six rejected by the guards; the template covers them at 0 s |
+| Time to write a model line | 1.2 s | 0.4 s idle, up to 2 s with another game on the GPU, paid ahead of the trigger and never heard |
+| Time from trigger to voice | | 0 s for every line: cached, and played through the Windows sound API |
 
 Player reactions after each line, 20 s window, against a baseline of random quiet moments, from `python analyze.py`:
-speed change, seconds stationary, ascended, closed on home, distanced the threat, turned back. One diver is a
-description, not evidence. The tooling is ready for participants.
+speed change, seconds stationary, ascended, closed on home, distanced the threat, turned back. From one real dive
+on 2026-09-07, 213 s, a Collector Leviathan to 10 m, air to 41 s of 120, depth to 475 m:
+
+| After | n | speed change | ascended | closed on home | distanced | turned back |
+|---|---|---|---|---|---|---|
+| an oxygen line | 2 | −0.6 m/s | 1.0 | 0.0 | 0.0 | 0.0 |
+| a creature line | 3 | −3.4 m/s | 1.0 | 0.3 | 0.0 | 0.0 |
+| the contact line | 1 | −2.8 m/s | 1.0 | 1.0 | 1.0 | 1.0 |
+| random quiet moments | 29 | 0.0 m/s | 0.03 | 0.0 | 0.7 | 0.0 |
+
+The diver froze after every creature line, rose after every oxygen line, and turned back only at contact. One
+diver is a description, not evidence. The tooling is ready for participants.
 
 <br>
 
@@ -264,6 +278,11 @@ seems to have written them down.
   `pcall` cannot catch. Read the three you have verified. Use UE4SS's own object dumper to explore.
 - **`localhost` costs two seconds on Windows** because Python tries IPv6 first. Talk to Ollama at `127.0.0.1`,
   and give the warm-up call the same `num_ctx` as the real call or the model reloads every time.
+- **Do not play audio through a PowerShell process per line.** The start-up alone is most of a second, and a
+  queue of them turns a leviathan pass into a monologue after the fact. `winsound` starts instantly and can be
+  cut off. Then make the queue latest-wins.
+- **Another game on the GPU slows a 4B model five-fold.** Ollama reports 100% GPU either way. Prefetch, so the
+  model's time is never on the critical path.
 
 <br>
 

@@ -85,7 +85,7 @@ def report(rows: list[dict[str, Any]]) -> None:
     hints = [h for r in rows for h in r["hints"]]
     critical = [h for h in hints if h["topic"] in fathom.CRITICAL | fathom.POOLED]  # by design, no model
     modelled = [h for h in hints if h["topic"] not in fathom.CRITICAL | fathom.POOLED]
-    fallback = sum(h["source"] == "fallback" for h in modelled)
+    fallback = sum(not h["source"].startswith("llm") for h in modelled)
     print("\nsummary vs poster targets")
     print(f"  relevance        {sum(r['relevant'] for r in rows)}/{len(rows)}   target 7/8 on the original eight")
     print(f"  persona tracking {sum(r['tracked'] for r in rows)}/{len(rows)}   target 8/8 on the original eight")
