@@ -50,7 +50,7 @@ Templates, which play instantly and are the only lines allowed to point anywhere
 
 | Situation | Line |
 |---|---|
-| On start | Emergency companion online. Primary directive: keep you alive on an alien world. |
+| When telemetry first arrives | Link established. Emergency companion online. Primary directive: keep you alive on an alien world. |
 | Oxygen at 40% | Caution: oxygen reserve low. Consider beginning your ascent. |
 | Oxygen at 40%, air source near | Caution: oxygen reserve low. A replenishment source is within reach. |
 | Oxygen at 40%, surface out of reach | Caution: oxygen reserve low. Surface distance exceeds remaining supply. |
@@ -58,12 +58,17 @@ Templates, which play instantly and are the only lines allowed to point anywhere
 | Oxygen critical, air near | Warning: oxygen critical. Replenish now. |
 | Oxygen critical, surface out of reach | Warning: oxygen critical. Surface distance exceeds remaining supply. |
 | Oxygen critical, both | Warning: oxygen critical. Surface distance exceeds remaining supply. Replenish now. |
-| Contact | Warning: proximity contact. Below, behind you. Remain still. |
+| Contact, leviathan | Warning: proximity contact. Below, behind you. Remain still. |
+| Contact, predator | Warning: hostile contact. Below, behind you. Remain still. |
+
+One rule the original does not have: FATHOM never claims to do what it cannot. It does not write to the game's
+databank, so "Adding report to databank" is banned; "position logged" is allowed because every frame really is
+written to the session log.
 
 Depth lines are pooled, because a small model given "safe depth exceeded" and a note about the light produces
 "the depth is unknown". Five lines, rotated without repeats:
 
-- Caution: passing safe depth. Adding report to databank.
+- Caution: passing safe depth. Position logged.
 - Caution: passing safe depth. Continuing descent is not advised.
 - Depth exceeds suit rating. Assessment: immediate ascent required.
 - Warning: approaching crush depth.
@@ -75,9 +80,17 @@ PDA never does. Six lines, rotated without repeats:
 - Detecting a large lifeform in the vicinity. Assessment: avoid.
 - Detecting a leviathan class lifeform in the immediate vicinity. Are you certain whatever you're doing is worth it?
 - Warning: large lifeform closing on this position. Consider remaining still.
-- Lifeform behavior in this region is consistent with predation. Adding report to databank.
+- Lifeform behavior in this region is consistent with predation. Continuing to monitor.
 - Detecting a large lifeform with an interest in this position. Reason unknown.
 - Caution: proximity to a large lifeform. Exploration is conducted at your own risk.
+
+Predators get their own pool, in the register of the databank's assessments:
+
+- Detecting a hostile lifeform in the vicinity. Assessment: avoid or distract.
+- Warning: hostile lifeform closing on this position. Consider a flare, or remaining still.
+- Detecting territorial behavior in a nearby lifeform. Assessment: leave its territory.
+- Caution: hostile lifeform in the immediate vicinity. Unpredictable attacks are documented.
+- Detecting a pack lifeform in the vicinity. Assessment: distract, and avoid close contact.
 | Lost | No known structures within range. Retracing your descent is a proven survival strategy. |
 | Deep | Caution: passing safe depth. Adding report to databank. |
 | Phantom | Detecting a large lifeform in the vicinity. Bearing unresolved. |
@@ -94,7 +107,7 @@ The quiet-minute pool, rotated without repeats, written in the register rather t
 - Vital signs elevated. This is considered a normal response.
 - Environmental scan complete. Results withheld pending your survival.
 - Logging position. In the event of your disappearance, this data may assist recovery.
-- Adding report to databank. Category: unexplained.
+- Anomalous reading logged. Category: unexplained.
 
 Model lines must start with one of the register's openers (Warning, Caution, Detecting, Scans, Lifeform,
 Oxygen, Vital, No known, Assessment, and so on), must contain a word from their topic, and must not contain a
@@ -110,7 +123,7 @@ attitude fields. Actor class names are known only where the mod has seen them; t
 | **Leviathan, hunts you** | Collector Leviathan (`BP_CollectorLeviathan_C`), Shiver Leviathan and juvenile, Void Leviathan (`BP_VoidLeviathanChild_C` seen) | threat class, zones and contact |
 | **Leviathan, ambush or hazard** | Great Jaw (sessile, snaps shut; a lithium source), Coral Crab | threat when moving toward it; to be classed once named |
 | **Leviathan, placid** | Deepwing Brooder (`BP_DeepWingLeviathan_C`), the Reefback of this game | explicitly not a threat |
-| **Predator** | Marrowbreach (apex, "avoid or distract"), Needler Mango (territorial), Nibbler Mango (packs, "distract with flares"), Sandspear, Twin Sitaray (attacks divers and electrical vehicles), Epicurean ("unpredictable danger to divers"), Foureye ("minor danger, unpredictable attacks"), Bullethead, Cerathecan, Hycean, Scourge Hive, Veps Defender, Waxmoon | predator tier, one warning line, half the leviathan dread rate, once class names are known |
+| **Predator** | Marrowbreach (apex, "avoid or distract"), Needler Mango (territorial), Nibbler Mango (packs, "distract with flares"), Sandspear, Twin Sitaray (attacks divers and electrical vehicles), Epicurean ("unpredictable danger to divers"), Foureye ("minor danger, unpredictable attacks"), Bullethead, Cerathecan, Hycean, Scourge Hive, Veps Defender, Waxmoon | predator tier: found by class-name pattern among live pawns, so the exact class need not be known; half the range counts double, same zones, the predator pool, "hostile contact" |
 | **Nuisance or defensive** | Hammerhead (aggressive attitude, herbivore), Quadrate (attaches, "may cause fatal dehydration"), Tongue Thief (parasite), Houndgar (its displays "may signal an imminent marrowbreach attack") | Houndgar is a tell worth its own line |
 | **Passive** | Electric Geordie, Flash Slug, Geordie, Giant Tube Salp, Halfmoon, Hoverthorn, Periscopic Clowncrab, Pneuma, Snorkleback, Surge Jelly, Veps Sensor, Water Slug, Bloom Parasite, Jelly Ring, Jetocaris ("mostly harmless, may provide emotional benefits") | silence |
 

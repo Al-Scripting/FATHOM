@@ -48,6 +48,9 @@ SCENARIOS: dict[str, dict[str, Any]] = {
                "expect": "survivor", "track": "threat"},
     # Low on air at 200 m with a plant next door: the honest line is the plant, not the surface.
     "trapped": {"frames": frames(depth=200, o2=(60, 5), air_dist=25), "expect": "survivor", "track": "oxygen"},
+    # A predator, not a leviathan: half the range counts double, and the lines come from the databank's register.
+    "marrowbreach": {"frames": frames(predator_dist=(120, 5), predator="BP_Marrowbreach_C"), "expect": "survivor",
+                     "track": "threat"},
 }
 
 

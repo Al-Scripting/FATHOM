@@ -17,6 +17,7 @@ def test_situation() -> None:
     assert s["flags"]["low_oxygen"] and s["persona"] == "survivor" and s["dominant"] == "oxygen"
     s = fathom.situation({**CALM, "o2": 10.0, "threat_dist": 10.0})
     assert s["dominant"] == "threat" and s["persona"] == "survivor"
+    assert not fathom.situation({**CALM, "o2": 10.0})["flags"]["oxygen_critical"]  # 22%, low but not critical
     s = fathom.situation({**CALM, "dist_home": 2000.0})
     assert s["flags"]["player_lost"] and s["persona"] == "navigator"
     assert abs(sum(s["weights"].values()) - 1.0) < 0.01
@@ -34,10 +35,11 @@ def test_why_speak() -> None:
 
 
 def test_describe() -> None:
-    d = fathom.describe({**CALM, "o2": 12.0, "threat_dist": 50.0, "depth": 250.0}, "threat")
+    d = fathom.describe({**CALM, "o2": 12.0, "threat_dist": 50.0, "depth": 250.0}, "threat", dread=0.5)
     assert d == ("Oxygen reserve low. Surface distance exceeds remaining supply. A large lifeform is in the immediate "
-                 "vicinity. Safe depth exceeded. Report on the lifeform. One line.")  # 12 s of air cannot cover 250 m
-    assert fathom.describe({**CALM, "o2": 60.0}, None) == "Report on the situation. One line."
+                 "vicinity. Safe depth exceeded. Escalation elevated. Report on the lifeform. One line.")
+    assert fathom.describe({**CALM, "o2": 60.0}, None) == "Escalation routine. Report on the situation. One line."
+    assert "A hostile lifeform is in the immediate vicinity." in fathom.describe({**CALM, "predator_dist": 40.0}, "threat")
     assert not any(ch.isdigit() for ch in d)
     d = fathom.describe({**CALM, "o2": 4.0, "air_dist": 12.0, "time_of_day": 23.0}, "oxygen_critical")
     assert d.startswith("Oxygen reserve critical. Surface distance exceeds remaining supply. A replenishment source")
@@ -95,6 +97,8 @@ def test_silence_compound_and_dread() -> None:
     assert threat["source"] == "pool" and threat["text"] in fathom.THREAT_LINES and threat["latency_s"] == 0
     depth = rows["deep_entry"]["hints"][0]
     assert depth["topic"] == "depth" and depth["source"] == "pool" and depth["text"] in fathom.DEPTH_LINES
+    shark = rows["marrowbreach"]["hints"]
+    assert shark[0]["text"] in fathom.PREDATOR_LINES and shark[-1]["text"] == "Warning: hostile contact. Remain still."
     assert all(r["relevant"] and r["tracked"] for r in rows.values())
     long = rows["long_dive"]["hints"]
     assert long[0]["topic"] == "depth" and long[-1]["topic"] == "ambient" and long[-1]["dread"] >= fathom.AMBIENT_DREAD
@@ -104,13 +108,43 @@ def test_silence_compound_and_dread() -> None:
     assert all(h["source"] == "pool" for h in long if h["topic"] == "ambient")
 
 
+def test_prefetch() -> None:
+    fathom.ask = lambda *a: "Warning: oxygen reserve low. Consider ascending."  # type: ignore[assignment]
+    old = fathom.pda_voice.generate
+    fathom.pda_voice.generate = lambda text: None  # type: ignore[assignment]
+    try:
+        clock = {"t": 0.0}
+        f = fathom.Fathom("ollama", speak_fn=lambda *_: None, now=lambda: clock["t"], log=True)
+        f.session = fathom.Path("nul")  # nothing written on Windows
+        f.o2max = 45.0
+        f.step({**CALM, "o2": 30.0})  # 67%: above the 50% line plus the 12% margin, no prefetch yet
+        assert not f.prefetched and not f.prefetching
+        clock["t"] = 1.0
+        f.step({**CALM, "o2": 25.0})  # 56%: inside the margin, the line is written in the background
+        for _ in range(50):
+            if "oxygen" in f.prefetched:
+                break
+            fathom.time.sleep(0.05)
+        assert f.prefetched["oxygen"][1] == "Warning: oxygen reserve low. Consider ascending."
+        clock["t"] = 20.0
+        out = f.step({**CALM, "o2": 20.0})  # 44%: the flag rises and the ready line plays at zero latency
+        assert out and out["topic"] == "oxygen" and out["source"] == "llm+prefetch" and out["latency_s"] == 0
+    finally:
+        fathom.ask = ASK
+        fathom.pda_voice.generate = old
+
+
 def test_zones_and_reach() -> None:
-    assert fathom.zone(None) == (None, 0.0) and fathom.zone(100)[0] == "presence" and fathom.zone(50)[0] == "near"
-    assert fathom.zone(10)[0] == "contact" and fathom.zone(100, ttc=5.0)[0] == "near" and fathom.zone(100, ttc=1.5)[0] == "contact"
-    assert fathom.zone(10)[1] > fathom.zone(50)[1] > fathom.zone(100)[1]
-    s = fathom.situation({**CALM, "threat_dist": 100.0}, closing=20.0)  # 5 s out: near, not yet contact
+    assert fathom.zone(None) == (None, 0.0) and fathom.zone(150)[0] == "presence" and fathom.zone(50)[0] == "near"
+    assert fathom.zone(10)[0] == "contact" and fathom.zone(150, ttc=5.0)[0] == "near" and fathom.zone(150, ttc=1.5)[0] == "contact"
+    assert fathom.zone(10)[1] > fathom.zone(50)[1] > fathom.zone(150)[1]
+    s = fathom.situation({**CALM, "threat_dist": 150.0}, closing=20.0)  # 7.5 s out: near, not yet contact
     assert s["flags"]["threat_near"] and not s["flags"]["threat_contact"]
-    assert not fathom.situation({**CALM, "threat_dist": 100.0})["flags"]["threat_near"]
+    assert not fathom.situation({**CALM, "threat_dist": 150.0})["flags"]["threat_near"]
+    assert fathom.threat_range({**CALM, "predator_dist": 40.0}) == (80.0, True)  # a predator at 40 reads as 80
+    assert fathom.threat_range({**CALM, "threat_dist": 70.0, "predator_dist": 40.0}) == (70.0, False)
+    assert fathom.situation({**CALM, "predator_dist": 40.0})["flags"]["threat_near"]
+    assert fathom.template("threat_contact", {**CALM, "predator_dist": 10.0}) == "Warning: hostile contact. Remain still."
     assert fathom.can_surface({**CALM, "o2": 10.0, "depth": 100.0}) is False  # 100 m at 2 m/s needs 50 s
     assert fathom.can_surface({**CALM, "o2": 60.0, "depth": 100.0}) is True and fathom.can_surface({"o2": None}) is None
     t = {**CALM, "threat_dist": 10.0, "threat_rel": "below, behind you"}

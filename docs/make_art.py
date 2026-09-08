@@ -130,9 +130,9 @@ def dread_curve(path: Path, session: Path) -> None:
 
 
 def zones_svg(path: Path) -> None:
-    rings = [(1600, "silence", DIM, "nothing"), (120, "presence", SLATE, "at most an ambient line"),
-             (60, "near", SAND, "one line, a posture: stay still, lights off"),
-             (20, "contact", CORAL, "instant template, one concrete fact: above, below, behind")]
+    rings = [(1600, "silence", DIM, "nothing"), (200, "presence", SLATE, "at most an ambient line"),
+             (100, "near", SAND, "one line, a posture: stay still, lights off"),
+             (30, "contact", CORAL, "instant template, one concrete fact: above, below, behind")]
     R, rmax = 230, 3000
     rad = lambda d: R * math.log10(1 + d) / math.log10(1 + rmax)  # noqa: E731
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" font-family="Segoe UI, sans-serif">',
@@ -151,11 +151,11 @@ def zones_svg(path: Path) -> None:
     for d, name, col, desc in rings[1:]:
         rate = {"presence": "1/300", "near": "1/120", "contact": "1/40"}[name]
         parts.append(f'<rect x="540" y="{y - 14}" width="8" height="40" fill="{col}"/>')
-        parts.append(f'<text x="560" y="{y}" fill="{col}" font-size="14" font-weight="600" letter-spacing="2">{name.upper()}  <tspan fill="{DIM}" font-weight="400" letter-spacing="0">under {d} m, or by time to contact</tspan></text>')
+        parts.append(f'<text x="560" y="{y}" fill="{col}" font-size="14" font-weight="600" letter-spacing="2">{name.upper()}  <tspan fill="{DIM}" font-weight="400" letter-spacing="0">under {d} m, half that for a predator, or by time to contact</tspan></text>')
         parts.append(f'<text x="560" y="{y + 20}" fill="{ICE}" font-size="12">{desc}</text>')
         parts.append(f'<text x="560" y="{y + 36}" fill="{DIM}" font-size="11">dread +{rate} per second</text>')
         y += 78
-    parts.append(f'<text x="540" y="{y + 10}" fill="{DIM}" font-size="11">time to contact = range / closing speed. A charge at 16 m/s is near at 90 m, not 60.</text>')
+    parts.append(f'<text x="540" y="{y + 10}" fill="{DIM}" font-size="11">time to contact = range / closing speed. A charge at 16 m/s is near at 160 m, not 100.</text>')
     parts.append("</svg>")
     path.write_text("\n".join(parts), encoding="utf-8")
 

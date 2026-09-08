@@ -1,19 +1,28 @@
 -- FATHOM telemetry mod (UE4SS Lua). Writes telemetry.json twice a second for the Python side.
--- Nothing here scans objects or reads properties by name beyond the three below: every discovery attempt from
--- Lua crashed this build (2026-09-07, five dumps). Use UE4SS's own "Dump Objects & Properties" for exploration.
+-- Only calls proven safe on this build are used: FindFirstOf, FindAllOf, IsValid, GetClass():GetFName(),
+-- K2_GetActorLocation, GetVelocity, GetControlRotation, one verified property on the HUD view model, and pcall'd
+-- UFunction calls. Every attempt to scan objects or read properties by name from Lua crashed this build
+-- (2026-09-07, five dumps). Use UE4SS's own "Dump Objects & Properties" for exploration.
 
 local OUT = "S:/Master/FATHOM/telemetry.json"
 local PERIOD_MS = 500
 local SEA_LEVEL_Z = 0 -- measured 2026-09-07: pawn Z at the surface was -1.9 cm, so no offset needed
 -- Oxygen: the HUD view model mirrors UWESurvivalAttributeSet.Oxygen on the pawn and is unique to the player.
 local O2_CLASS, O2_PROP = "SN2PlayerOxygenViewModel", "CurrentValue"
--- Deepwing Brooder is placid (the Reefback of this game) and is deliberately not a threat.
-local THREAT_CLASSES = { "BP_CollectorLeviathan_C", "BP_VoidLeviathanChild_C" }
 local HOME_CLASSES = { "BP_Lifepod_C", "BP_StaticLifepod_C", "BP_StaticLifepod_Surface_C", "BP_BaseHatch_C",
     "BP_Tadpole_C" }
 local AIR_CLASSES = { "BP_OxygenPlant_C", "BP_OxygenTank_Medium_C", "BP_OxygenGenerator_Carryable_C",
     "BP_OxygenReplenishBox_C", "BP_Tadpole_C" }
 local DAY_CLASS = "DaySequenceActor" -- Unreal's day sequence plugin; GetTimeOfDay() returns game hours
+-- Hostiles are found by class-name pattern among live pawns, so predators whose exact class is not yet known
+-- are still tracked. Names from the Subnautica 2 wiki's creature roster (docs/pda_register.md).
+local LEVIATHAN = { "Leviathan", "Shiver", "GreatJaw", "CoralCrab", "Collector" }
+local PREDATOR = { "Marrowbreach", "Sandspear", "Epicurean", "Foureye", "Hycean", "Cerathecan", "Bullethead",
+    "Needler", "Nibbler", "Sitaray", "Scourge", "Waxmoon", "VepsDefender", "Defendervep", "Hammerhead" }
+local PLACID = { "DeepWing", "Deepwing" } -- the Deepwing Brooder is the Reefback of this game
+local EXCLUDE = { "Nest", "Egg", "Spawn", "Zone", "Manager", "Prototype", "Shake", "Sound", "Fragment",
+    "PlayerStart", "Chassis", "Tadpole", "Trigger", "Component", "Anim", "Default__", "Corpse", "Dead" }
+local KNOWN_LEVIATHANS = { "BP_CollectorLeviathan_C", "BP_VoidLeviathanChild_C" } -- in case they are not Pawns
 
 local function log(s) print("[FATHOM] " .. tostring(s) .. "\n") end
 
@@ -29,8 +38,28 @@ local function dist(a, b)
     return math.sqrt(dx * dx + dy * dy + dz * dz) / 100 -- UE cm -> m
 end
 
--- No actor caching: a cached actor freed by garbage collection (crafting spam does it) is a dangling pointer and
--- crashed the game. FindAllOf goes through UE4SS's class index and is cheap enough per tick.
+local function has_any(s, words)
+    for _, w in ipairs(words) do
+        if s:find(w, 1, true) then return true end
+    end
+    return false
+end
+
+local tier_cache = {}
+local function tier(cn)
+    local t = tier_cache[cn]
+    if t ~= nil then return t or nil end
+    local result = false
+    if not has_any(cn, EXCLUDE) and not has_any(cn, PLACID) then
+        if has_any(cn, LEVIATHAN) then result = "leviathan" elseif has_any(cn, PREDATOR) then result = "predator" end
+    end
+    tier_cache[cn] = result
+    if result then log("tracking " .. cn .. " as " .. result) end
+    return result or nil
+end
+
+-- No actor caching across ticks: a cached actor freed by garbage collection is a dangling pointer and crashed
+-- the game. FindAllOf goes through UE4SS's class index and is cheap enough per tick.
 local function nearest(classes, loc)
     local best, name, where
     for _, cls in ipairs(classes) do
@@ -45,9 +74,32 @@ local function nearest(classes, loc)
     return best, name, where
 end
 
--- Where the nearest threat is relative to the diver, in words: "below, behind you". Only computed inside
--- 2x THREAT range, and only ever spoken at contact. Facing comes from the control rotation, else from velocity.
-local function relation(pc, pawn, loc, vel, where)
+-- Every live pawn whose class name marks it hostile, nearest per tier.
+local function hostiles(pawn, loc)
+    local best = { leviathan = {}, predator = {} }
+    local me = pawn:GetAddress()
+    local function consider(o, forced)
+        local ok = pcall(function()
+            if not o:IsValid() or o:GetAddress() == me then return end
+            local cn = o:GetClass():GetFName():ToString()
+            local tr = forced or tier(cn)
+            if not tr then return end
+            local l = o:K2_GetActorLocation()
+            local d = dist(l, loc)
+            local b = best[tr]
+            if not b.dist or d < b.dist then b.dist, b.name, b.where = d, cn, l end
+        end)
+        return ok
+    end
+    for _, o in ipairs(FindAllOf("Pawn") or {}) do consider(o) end
+    for _, cls in ipairs(KNOWN_LEVIATHANS) do
+        for _, o in ipairs(FindAllOf(cls) or {}) do consider(o, "leviathan") end
+    end
+    return best.leviathan, best.predator
+end
+
+-- Where a hostile is relative to the diver, in words: "below, behind you". Only ever spoken at contact.
+local function relation(pc, loc, vel, where)
     local dz = (where.Z - loc.Z) / 100
     local vert = dz > 5 and "above" or dz < -5 and "below" or nil
     local fx, fy
@@ -104,10 +156,10 @@ local function write(t)
     local f = io.open(OUT .. ".tmp", "w")
     if not f then return end
     f:write(string.format(
-        '{"t":%d,"depth":%s,"o2":%s,"speed":%s,"threat_dist":%s,"threat":%s,"threat_rel":%s,"dist_home":%s,' ..
-        '"air_dist":%s,"time_of_day":%s,"x":%s,"y":%s}',
-        os.time(), j(t.depth), j(t.o2), j(t.speed), j(t.threat_dist), j(t.threat), j(t.threat_rel), j(t.dist_home),
-        j(t.air_dist), j(t.time_of_day), j(t.x), j(t.y)))
+        '{"t":%d,"depth":%s,"o2":%s,"speed":%s,"threat_dist":%s,"threat":%s,"predator_dist":%s,"predator":%s,' ..
+        '"threat_rel":%s,"dist_home":%s,"air_dist":%s,"time_of_day":%s,"x":%s,"y":%s}',
+        os.time(), j(t.depth), j(t.o2), j(t.speed), j(t.threat_dist), j(t.threat), j(t.predator_dist),
+        j(t.predator), j(t.threat_rel), j(t.dist_home), j(t.air_dist), j(t.time_of_day), j(t.x), j(t.y)))
     f:close()
     os.remove(OUT)
     os.rename(OUT .. ".tmp", OUT)
@@ -120,17 +172,18 @@ local function frame()
     local loc = pawn:K2_GetActorLocation()
     local vel = pawn:GetVelocity()
     local speed = math.sqrt(vel.X ^ 2 + vel.Y ^ 2 + vel.Z ^ 2) / 100
-    local td, tn, where = nearest(THREAT_CLASSES, loc)
+    local lev, pred = hostiles(pawn, loc)
     local rel
-    if td and td < 120 then
-        local ok, r = pcall(relation, pc, pawn, loc, vel, where)
+    local close = lev.dist and (not pred.dist or lev.dist <= pred.dist) and lev or pred
+    if close.dist and close.dist < 120 then
+        local ok, r = pcall(relation, pc, loc, vel, close.where)
         if ok then rel = r end
     end
     local hd = nearest(HOME_CLASSES, loc)
     local ad = nearest(AIR_CLASSES, loc)
-    write({ depth = (SEA_LEVEL_Z - loc.Z) / 100, o2 = read_o2(), speed = speed, threat_dist = td, threat = tn,
-        threat_rel = rel, dist_home = hd, air_dist = ad, time_of_day = time_of_day(), x = loc.X / 100,
-        y = loc.Y / 100 })
+    write({ depth = (SEA_LEVEL_Z - loc.Z) / 100, o2 = read_o2(), speed = speed, threat_dist = lev.dist,
+        threat = lev.name, predator_dist = pred.dist, predator = pred.name, threat_rel = rel, dist_home = hd,
+        air_dist = ad, time_of_day = time_of_day(), x = loc.X / 100, y = loc.Y / 100 })
 end
 
 local busy = false

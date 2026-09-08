@@ -46,10 +46,12 @@ Pooled lines are for the quiet minutes, rotated without repeats.
 | Air at 40% of capacity | **"Warning: oxygen levels are below sustainable parameters."** | model · survivor · 0.15 |
 | Air at 40%, a plant within reach | **"Caution: oxygen reserve low. A replenishment source is within reach."** | template · survivor |
 | Air for 29 s, surface 3 minutes away, a tank 40 m off | **"Warning: oxygen critical. Surface distance exceeds remaining supply. Replenish now."** | template, 0 s · survivor · 0.86 |
-| A leviathan crosses 60 m | **"Detecting a large lifeform in the vicinity. Assessment: avoid."** | pool, 0 s · survivor · 0.15 |
-| Another crosses 60 m | **"Detecting a leviathan class lifeform in the immediate vicinity. Are you certain whatever you're doing is worth it?"** | pool, 0 s · survivor |
-| Another | **"Lifeform behavior in this region is consistent with predation. Adding report to databank."** | pool, 0 s · survivor |
-| The same creature at 20 m, instantly | **"Warning: proximity contact. Below, behind you. Remain still."** | template, 0 s · survivor · 0.85 |
+| A leviathan crosses 100 m | **"Detecting a large lifeform in the vicinity. Assessment: avoid."** | pool, 0 s · survivor · 0.15 |
+| Another crosses 100 m | **"Detecting a leviathan class lifeform in the immediate vicinity. Are you certain whatever you're doing is worth it?"** | pool, 0 s · survivor |
+| Another | **"Lifeform behavior in this region is consistent with predation. Continuing to monitor."** | pool, 0 s · survivor |
+| The same creature at 30 m, instantly | **"Warning: proximity contact. Below, behind you. Remain still."** | template, 0 s · survivor · 0.85 |
+| A predator at 50 m | **"Detecting a hostile lifeform in the vicinity. Assessment: avoid or distract."** | pool, 0 s · survivor |
+| The predator at 15 m, instantly | **"Warning: hostile contact. Remain still."** | template, 0 s · survivor |
 | Passing 200 m | **"Caution: passing safe depth. Continuing descent is not advised."** | pool, 0 s · explorer · 0.15 |
 | Deeper | **"Depth exceeds suit rating. Assessment: immediate ascent required."** | pool, 0 s · explorer |
 | Far from anything | **"Scans indicate a consistent current flow towards the initial descent point."** | model · navigator · 0.15 |
@@ -67,11 +69,11 @@ Pooled lines are for the quiet minutes, rotated without repeats.
 Every file below is the real thing: IVONA Amy through the original filter chain, exactly as it plays in the headset.
 **The listen page has players for all of them: [al-scripting.github.io/FATHOM](https://al-scripting.github.io/FATHOM/).**
 Or click a line here and the browser plays it. **[▶ The whole showreel](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/fathom_showreel.mp3)**,
-twenty-seven lines with a breath between them, or pick one:
+thirty lines with a breath between them, or pick one:
 
 | | Line | Source · dread |
 |---|---|---|
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/companion_link.mp3) | "Emergency companion online. Primary directive: keep you alive on an alien world." | on start |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/companion_link.mp3) | "Link established. Emergency companion online. Primary directive: keep you alive on an alien world." | when the game's telemetry first arrives, not before |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/leviathan_class.mp3) | "Detecting a leviathan class lifeform in the region. Are you certain whatever you're doing is worth it?" | the game's own line, for reference |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/oxygen_low_model.mp3) | "Warning: oxygen levels are below sustainable parameters." | model · 0.15 |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/oxygen_low.mp3) | "Caution: oxygen reserve low. Consider beginning your ascent." | template |
@@ -81,11 +83,14 @@ twenty-seven lines with a breath between them, or pick one:
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/lifeform_near.mp3) | "Detecting a large lifeform in the vicinity. Assessment: avoid." | pool · 0.15 |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/leviathan_worth_it.mp3) | "Detecting a leviathan class lifeform in the immediate vicinity. Are you certain whatever you're doing is worth it?" | pool |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/lifeform_closing.mp3) | "Warning: large lifeform closing on this position. Consider remaining still." | pool |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/predation.mp3) | "Lifeform behavior in this region is consistent with predation. Adding report to databank." | pool |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/predation.mp3) | "Lifeform behavior in this region is consistent with predation. Continuing to monitor." | pool |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/interest_in_position.mp3) | "Detecting a large lifeform with an interest in this position. Reason unknown." | pool |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/own_risk.mp3) | "Caution: proximity to a large lifeform. Exploration is conducted at your own risk." | pool |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/contact_below_behind.mp3) | "Warning: proximity contact. Below, behind you. Remain still." | template, instant · 0.85 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/safe_depth.mp3) | "Caution: passing safe depth. Adding report to databank." | pool · 0.15 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/hostile_near.mp3) | "Detecting a hostile lifeform in the vicinity. Assessment: avoid or distract." | pool, predator tier |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/hostile_closing.mp3) | "Warning: hostile lifeform closing on this position. Consider a flare, or remaining still." | pool, predator tier |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/hostile_contact.mp3) | "Warning: hostile contact. Remain still." | template, instant |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/safe_depth.mp3) | "Caution: passing safe depth. Position logged." | pool · 0.15 |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/descent_not_advised.mp3) | "Caution: passing safe depth. Continuing descent is not advised." | pool |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/suit_rating.mp3) | "Depth exceeds suit rating. Assessment: immediate ascent required." | pool |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/descent_point_model.mp3) | "Scans indicate a consistent current flow towards the initial descent point." | model · 0.15 |
@@ -115,7 +120,17 @@ What the poster promised, what the first dives exposed, what the system does now
 <tr>
 <td><b>Collector Leviathan closing in</b></td>
 <td>One line at 60 m, heard seven seconds later once the model and the synthesizer had finished. Silence at 25 m because the flag was already set.</td>
-<td>Zones. Presence at 120 m earns at most an ambient line. Near at 60 m earns one posture line. Contact at 20 m, or two seconds out by closing speed, fires a cached template with zero latency and the one concrete fact the PDA withholds everywhere else: <b>above, below, behind you</b>.</td>
+<td>Zones. Presence at 200 m earns at most an ambient line. Near at 100 m, or ten seconds out by closing speed, earns one posture line. Contact at 30 m, or four seconds out, fires a cached template with zero latency and the one concrete fact the PDA withholds everywhere else: <b>above, below, behind you</b>.</td>
+</tr>
+<tr>
+<td><b>A predator, not a leviathan</b></td>
+<td>Only two leviathan classes were tracked. A Marrowbreach could eat you in silence.</td>
+<td>Every live pawn whose class name matches the wiki's predator roster is tracked by pattern, so creatures whose exact class is still unknown are caught too. Half a predator's range counts double, the same zones apply, and the lines come from the databank's own register: <i>"Assessment: avoid or distract."</i></td>
+</tr>
+<tr>
+<td><b>Model lines arriving seconds late</b></td>
+<td>The model took a second and the voice generator five to ten more, so an oxygen line about 40% landed at 30%.</td>
+<td>Oxygen and the way back move slowly, so their lines are written and synthesized while the situation is still approaching the threshold, and play at zero latency when it crosses. If the situation changes in between, the line is written again. Everything else was already cached.</td>
 </tr>
 <tr>
 <td><b>Oxygen at 29 s, 416 m down</b></td>
@@ -164,12 +179,13 @@ Each frame becomes four signals in 0 to 1, linear, with the flag threshold at 0.
 
 | Signal | Formula | 0 at | 0.5 at | 1 at |
 |---|---|---|---|---|
-| oxygen | (0.8 − f) / 0.8, f = air / capacity | 80% | 40% | empty |
-| threat | (120 − d) / 120, metres to the nearest leviathan | 120 m | 60 m | touching |
+| oxygen | (1.0 − f) / 1.0, f = air / capacity | full | 50% | empty |
+| threat | (200 − d) / 200, metres to the nearest leviathan, or twice the metres to a predator | 200 m | 100 m | touching |
 | lost | (h − 750) / 1500, metres to the nearest structure | 750 m | 1.5 km | 2.25 km |
 | depth | (z − 200) / 200 | 200 m | 300 m | 400 m |
 
-Persona weights: survivor = 2 × max(oxygen, threat), navigator = lost, explorer = 1 − max of those, normalised.
+Persona weights: survivor = max(oxygen, threat), doubled once a survival flag is set, navigator = lost, explorer =
+1 − max of those, normalised. The model is told the escalation level in words along with the situation.
 The model never sees a number. It gets the situation in the register's own words ("Oxygen reserve low. Surface
 distance exceeds remaining supply. Safe depth exceeded.") and a persona, and it must answer the way the PDA
 answers: one of the register's sentence shapes, opening the way the PDA opens. A line is thrown away for the

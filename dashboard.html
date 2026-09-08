@@ -108,10 +108,11 @@
       <div class="sonar">
         <svg id="sonar" viewBox="-125 -125 250 250"></svg>
         <div class="keys">
-          <div class="k threat"><div class="lbl">Nearest threat</div><div class="num" id="threat">–<small>m</small></div><div class="name" id="threatName">none in range</div></div>
+          <div class="k threat"><div class="lbl">Nearest leviathan</div><div class="num" id="threat">–<small>m</small></div><div class="name" id="threatName">none in range</div></div>
+          <div class="k" style="border-color:#f0c987"><div class="lbl">Nearest predator</div><div class="num" id="predator">–<small>m</small></div><div class="name" id="predatorName">none in range</div></div>
           <div class="k"><div class="lbl">Structure</div><div class="num" id="home">–<small>m</small></div><div class="name">lifepod, base hatch or vehicle</div></div>
           <div class="k" style="border-color:#3fd7ff"><div class="lbl">Air source</div><div class="num" id="air">–<small>m</small></div><div class="name">plant, tank, generator or vehicle</div></div>
-          <div class="note">Rings at 25, 100, 400 and 1600 m. The PDA knows how far, never which way.</div>
+          <div class="note">Rings at 25, 100, 400 and 1600 m. Coral is a leviathan, sand a predator. The PDA knows how far, never which way.</div>
         </div>
       </div>
     </div>
@@ -149,12 +150,13 @@ function ruler(depth) {
   $("ruler").innerHTML = s;
 }
 let sweep = 0;
-function sonar(threat, home) {
+function sonar(threat, home, predator) {
   sweep = (sweep + 3) % 360;
   let s = RINGS.map(d => `<circle r="${rad(d)}" fill="none" stroke="rgba(63,215,255,.18)"/><text x="3" y="${-rad(d) - 2}" fill="#5d8299" font-size="8" font-family="JetBrains Mono">${d}</text>`).join("");
   s += `<line x1="-120" x2="120" y1="0" y2="0" stroke="rgba(63,215,255,.08)"/><line y1="-120" y2="120" x1="0" x2="0" stroke="rgba(63,215,255,.08)"/>`;
   s += `<path d="M0 0 L${120 * Math.cos((sweep - 30) * Math.PI / 180)} ${120 * Math.sin((sweep - 30) * Math.PI / 180)} A120 120 0 0 1 ${120 * Math.cos(sweep * Math.PI / 180)} ${120 * Math.sin(sweep * Math.PI / 180)} Z" fill="rgba(63,215,255,.07)"/>`;
   if (home != null) s += `<circle r="${rad(home)}" fill="none" stroke="#8aa5b8" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+  if (predator != null) s += `<circle r="${rad(predator)}" fill="none" stroke="#f0c987" stroke-width="1.5" stroke-dasharray="2 3"/>`;
   if (threat != null) s += `<circle r="${rad(threat)}" fill="none" stroke="#ff6a4d" stroke-width="2" style="filter: drop-shadow(0 0 5px #ff6a4d)"/>`;
   s += `<circle r="3" fill="#3fd7ff"/>`;
   $("sonar").innerHTML = s;
@@ -168,7 +170,7 @@ async function tick() {
   t0 = t0 ?? f[0].t;
   const age = Date.now() / 1000 - last.t, live = age < 3;
   $("link").className = "pill" + (live ? "" : " lost"); $("linkText").textContent = live ? "link live" : `link lost ${Math.round(age)} s`;
-  $("stats").textContent = `${f.length} frames · ${Math.floor((last.t - t0) / 60)}:${String(Math.floor((last.t - t0) % 60)).padStart(2, "0")} elapsed`;
+  $("stats").textContent = `${f.length} frames · ${Math.floor((last.t - t0) / 60)}:${String(Math.floor((last.t - t0) % 60)).padStart(2, "0")} elapsed` + (last.prefetched && last.prefetched.length ? ` · ready: ${last.prefetched.join(", ")}` : "");
   o2max = Math.max(o2max, ...f.map(x => x.o2 ?? 0));
   const frac = last.o2 == null ? 0 : last.o2 / o2max, arc = $("o2arc");
   arc.style.strokeDashoffset = 326.7 * (1 - frac); arc.style.stroke = arc.style.color = frac < .25 ? "#ff6a4d" : frac < .5 ? "#f0c987" : "#3fd7ff";
@@ -179,7 +181,9 @@ async function tick() {
   $("threatName").textContent = last.threat ? last.threat.replace(/^BP_|_C$/g, "").replace(/([a-z])([A-Z])/g, "$1 $2") + (last.zone ? ` · ${last.zone}` : "") + (last.ttc != null ? ` · contact in ${last.ttc}s` : "") + (last.threat_rel && last.zone === "contact" ? ` · ${last.threat_rel}` : "") : "none in range";
   $("surface").textContent = last.can_surface === false ? "surface out of reach" : last.can_surface ? "surface reachable" : "";
   $("home").innerHTML = `${fmt(last.dist_home)}<small>m</small>`; $("air").innerHTML = `${fmt(last.air_dist)}<small>m</small>`;
-  sonar(last.threat_dist, last.dist_home);
+  $("predator").innerHTML = `${fmt(last.predator_dist)}<small>m</small>`;
+  $("predatorName").textContent = last.predator ? last.predator.replace(/^BP_|_C$/g, "").replace(/([a-z])([A-Z])/g, "$1 $2") + (last.prefetched && last.prefetched.length ? "" : "") : "none in range";
+  sonar(last.threat_dist, last.dist_home, last.predator_dist);
   $("flags").innerHTML = Object.entries(last.flags).map(([k, v]) => `<span class="chip ${v ? "on" : ""}">${k.replace("_", " ")}</span>`).join("");
   $("who").textContent = last.persona; $("who").style.color = { explorer: "#f0c987", survivor: "#ff6a4d", navigator: "#3fd7ff" }[last.persona];
   $("stack").innerHTML = Object.entries(last.weights).map(([k, v]) => `<i class="${k}" style="width:${v * 100}%"></i>`).join("");

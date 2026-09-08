@@ -46,20 +46,32 @@ Sub-questions the prototype makes testable:
 Pipeline: game telemetry, situation vector, persona steering, PDA-style line, latency-bounded fallback, voice.
 
 **Telemetry (UE4SS Lua, 2 Hz, game thread).** Depth, oxygen seconds (from the HUD's oxygen view model, which
-mirrors the survival attribute set), speed, position, nearest threat distance and class (Collector and Void
-leviathans; the placid Deepwing Brooder is excluded), the threat's relation to the diver in words (above/below,
-ahead/behind), nearest structure (lifepod, base hatch, Tadpole), nearest air source (oxygen plant, tank,
-generator, replenish box, Tadpole), and time of day from the day-sequence actor. The mod performs no object
+mirrors the survival attribute set), speed, position, the nearest leviathan and the nearest predator with their
+distances and classes (every live pawn whose class name matches the wiki's roster; the placid Deepwing Brooder is
+excluded), the nearest hostile's relation to the diver in words (above/below, ahead/behind), nearest structure
+(lifepod, base hatch, Tadpole), nearest air source (oxygen plant, tank, generator, replenish box, Tadpole), and
+time of day from the day-sequence actor. The mod performs no object
 scanning and reads no properties beyond those verified; see Engineering notes.
 
-**Situation vector.** Six flags: threat contact (< 20 m or < 2 s to contact), oxygen critical (< 12% of capacity),
-threat near (< 60 m or < 6 s), low oxygen (< 40%, ahead of the game's own 25% alert), deep zone (> 200 m),
-lost (> 1.5 km from any structure). Four linear signals in 0 to 1 with the flag threshold at 0.5 (oxygen, threat,
-lost, depth). Time to contact is range over closing speed, so a fast approach is near before it is close.
+**Situation vector.** Six flags: threat contact (< 30 m or < 4 s to contact), oxygen critical (< 15% of capacity),
+threat near (< 100 m or < 10 s), low oxygen (< 50%, well ahead of the game's own 25% alert), deep zone (> 200 m),
+lost (> 1.5 km from any structure). Thresholds were moved earlier after the first dives, because a line has to
+land while it can still change a decision. Hostiles come in two tiers: leviathans, and predators found by
+class-name pattern among live pawns (a Marrowbreach at 50 m counts as a leviathan at 100 m). Four linear signals
+in 0 to 1 with the flag threshold at 0.5 (oxygen, threat, lost, depth). Time to contact is range over closing
+speed, so a fast approach is near before it is close.
 
-**Persona steering.** survivor = 2 × max(oxygen, threat), navigator = lost, explorer = 1 − max(survivor,
-navigator), normalised; argmax speaks. The factor two encodes "life outranks the way home". Each persona has a
-style instruction; a tone instruction is selected from dread.
+**Persona steering.** survivor = max(oxygen, threat), doubled once any survival flag is set, navigator = lost,
+explorer = 1 − max(survivor, navigator), normalised; argmax speaks. The factor two encodes "life outranks the way
+home", and applies only once life is at risk, so a creature patrolling at the edge of range does not make the PDA
+a survivalist. Each persona has a style instruction; a tone instruction and an escalation word (routine, elevated,
+high, critical) are derived from dread and given to the model with the situation.
+
+**Latency.** Cached lines (templates and pools) play at 0 s. A model line costs about a second to write and five
+to ten to synthesize at the voice generator, which in the first dives put an oxygen line about 40% at 30%. Oxygen
+and the way back are slow-moving, so their lines are now prefetched: written and synthesized while the situation
+approaches the threshold, keyed on what the line depends on (air source within reach, surface reachable), and
+rewritten if that changes before the trigger.
 
 **Trigger policy.** Silence is the default. A line fires when a flag rises (most urgent first), or when the persona
 or the dominant signal changes after a 10 s cooldown. Unprompted lines: after 180 s of silence below 200 m with

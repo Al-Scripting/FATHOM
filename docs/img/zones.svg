@@ -2,27 +2,27 @@
 <rect width="1000" height="520" fill="#04101c"/>
 <circle cx="270" cy="260" r="212" fill="#5d8299" fill-opacity="0.07" stroke="#5d8299" stroke-opacity="0.8" stroke-width="1.5"/>
 <text x="276" y="62.04899961315988" fill="#5d8299" font-size="11" letter-spacing="2">SILENCE · 1600 m</text>
-<circle cx="270" cy="260" r="138" fill="#8aa5b8" fill-opacity="0.07" stroke="#8aa5b8" stroke-opacity="0.8" stroke-width="1.5"/>
-<text x="276" y="136.2364133767528" fill="#8aa5b8" font-size="11" letter-spacing="2">PRESENCE · 120 m</text>
-<circle cx="270" cy="260" r="118" fill="#f0c987" fill-opacity="0.07" stroke="#f0c987" stroke-opacity="0.8" stroke-width="1.5"/>
-<text x="276" y="155.91128818078636" fill="#f0c987" font-size="11" letter-spacing="2">NEAR · 60 m</text>
-<circle cx="270" cy="260" r="87" fill="#ff6a4d" fill-opacity="0.07" stroke="#ff6a4d" stroke-opacity="0.8" stroke-width="1.5"/>
-<text x="276" y="186.54323419924475" fill="#ff6a4d" font-size="11" letter-spacing="2">CONTACT · 20 m</text>
+<circle cx="270" cy="260" r="152" fill="#8aa5b8" fill-opacity="0.07" stroke="#8aa5b8" stroke-opacity="0.8" stroke-width="1.5"/>
+<text x="276" y="121.65758676394" fill="#8aa5b8" font-size="11" letter-spacing="2">PRESENCE · 200 m</text>
+<circle cx="270" cy="260" r="133" fill="#f0c987" fill-opacity="0.07" stroke="#f0c987" stroke-opacity="0.8" stroke-width="1.5"/>
+<text x="276" y="141.42632960016522" fill="#f0c987" font-size="11" letter-spacing="2">NEAR · 100 m</text>
+<circle cx="270" cy="260" r="99" fill="#ff6a4d" fill-opacity="0.07" stroke="#ff6a4d" stroke-opacity="0.8" stroke-width="1.5"/>
+<text x="276" y="175.35549307036163" fill="#ff6a4d" font-size="11" letter-spacing="2">CONTACT · 30 m</text>
 <circle cx="270" cy="260" r="4" fill="#3fd7ff"/>
 <text x="280" y="264" fill="#3fd7ff" font-size="11">diver</text>
 <text x="540" y="90" fill="#d7ecf5" font-size="20" font-weight="600" letter-spacing="4">ZONES OF DREAD</text>
 <text x="540" y="116" fill="#5d8299" font-size="12">vague while vagueness costs nothing, concrete only at contact</text>
 <rect x="540" y="146" width="8" height="40" fill="#8aa5b8"/>
-<text x="560" y="160" fill="#8aa5b8" font-size="14" font-weight="600" letter-spacing="2">PRESENCE  <tspan fill="#5d8299" font-weight="400" letter-spacing="0">under 120 m, or by time to contact</tspan></text>
+<text x="560" y="160" fill="#8aa5b8" font-size="14" font-weight="600" letter-spacing="2">PRESENCE  <tspan fill="#5d8299" font-weight="400" letter-spacing="0">under 200 m, half that for a predator, or by time to contact</tspan></text>
 <text x="560" y="180" fill="#d7ecf5" font-size="12">at most an ambient line</text>
 <text x="560" y="196" fill="#5d8299" font-size="11">dread +1/300 per second</text>
 <rect x="540" y="224" width="8" height="40" fill="#f0c987"/>
-<text x="560" y="238" fill="#f0c987" font-size="14" font-weight="600" letter-spacing="2">NEAR  <tspan fill="#5d8299" font-weight="400" letter-spacing="0">under 60 m, or by time to contact</tspan></text>
+<text x="560" y="238" fill="#f0c987" font-size="14" font-weight="600" letter-spacing="2">NEAR  <tspan fill="#5d8299" font-weight="400" letter-spacing="0">under 100 m, half that for a predator, or by time to contact</tspan></text>
 <text x="560" y="258" fill="#d7ecf5" font-size="12">one line, a posture: stay still, lights off</text>
 <text x="560" y="274" fill="#5d8299" font-size="11">dread +1/120 per second</text>
 <rect x="540" y="302" width="8" height="40" fill="#ff6a4d"/>
-<text x="560" y="316" fill="#ff6a4d" font-size="14" font-weight="600" letter-spacing="2">CONTACT  <tspan fill="#5d8299" font-weight="400" letter-spacing="0">under 20 m, or by time to contact</tspan></text>
+<text x="560" y="316" fill="#ff6a4d" font-size="14" font-weight="600" letter-spacing="2">CONTACT  <tspan fill="#5d8299" font-weight="400" letter-spacing="0">under 30 m, half that for a predator, or by time to contact</tspan></text>
 <text x="560" y="336" fill="#d7ecf5" font-size="12">instant template, one concrete fact: above, below, behind</text>
 <text x="560" y="352" fill="#5d8299" font-size="11">dread +1/40 per second</text>
-<text x="540" y="404" fill="#5d8299" font-size="11">time to contact = range / closing speed. A charge at 16 m/s is near at 90 m, not 60.</text>
+<text x="540" y="404" fill="#5d8299" font-size="11">time to contact = range / closing speed. A charge at 16 m/s is near at 160 m, not 100.</text>
 </svg>

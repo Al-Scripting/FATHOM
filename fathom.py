@@ -39,11 +39,12 @@ MAX_WORDS = 18
 
 # Thresholds. Oxygen is a fraction of the largest capacity seen this session (45 s bare, 120 s with a tank), because
 # the game's own PDA warns at 25%: FATHOM speaks before it, then again only when it is dire.
-LOW_O2_FRAC = 0.40
-CRIT_O2_FRAC = 0.12
+LOW_O2_FRAC = 0.50  # early on purpose: the line, the model and the synthesizer all need a head start
+CRIT_O2_FRAC = 0.15
 O2_MAX_MIN = 45.0
-THREAT_M = 60.0
-CONTACT_M = 20.0
+THREAT_M = 100.0  # a leviathan this close is near
+CONTACT_M = 30.0
+PREDATOR_SCALE = 2.0  # a predator at 50 m reads like a leviathan at 100 m
 DEEP_M = 200.0
 DARK_M = 250.0  # below this it is dark whatever the hour
 LOST_M = 1500.0  # the lifepod sits 2 km from ordinary play in Subnautica 2
@@ -51,8 +52,10 @@ AIR_SOURCE_M = 40.0  # an oxygen plant, tank, generator or vehicle this close ch
 NIGHT = (19.5, 6.0)  # game hours
 SURVIVAL_PRIORITY = 2.0  # life outranks the way home two to one
 ASCENT_MPS = 2.0  # ponytail: swim-up speed without fins; calibrate from a logged ascent
-TTC_NEAR_S = 6.0  # a creature this many seconds away is near, whatever the distance
-TTC_CONTACT_S = 2.0
+TTC_NEAR_S = 10.0  # a creature this many seconds away is near, whatever the distance
+TTC_CONTACT_S = 4.0
+PREFETCH_O2_MARGIN = 0.12  # write and synthesize the oxygen line this far above the threshold, so it is ready
+PREFETCH_LOST_FRAC = 0.8  # same for the way back, at this fraction of LOST_M
 # Zones of dread: (outer range, name, dread per second). Vague while vagueness costs nothing, concrete at contact.
 ZONES = [(CONTACT_M, "contact", 1 / 40), (THREAT_M, "near", 1 / 120), (2 * THREAT_M, "presence", 1 / 300)]
 PHANTOM_DREAD = 0.8  # above this the PDA may report a contact that is not there
@@ -94,7 +97,7 @@ SYSTEM = (
     "Detecting multiple leviathan class lifeforms in the region. Are you certain whatever you're doing is worth it?\n"
     "Detecting unusually passive behavioral patterns in nearby predators. Reason unknown.\n"
     "Caution: scans show the digestive tracts of nearby lifeforms contain human tissues.\n"
-    "Warning: entering ecological dead zone. Adding report to databank.\n"
+    "Warning: entering ecological dead zone. Position logged.\n"
     "No known structures within range. Retracing your descent is a proven survival strategy.\n"
     "Persona: {persona}. {style} {tone} Say only what the situation says, in its own words. Do not invent "
     "equipment, places, anatomy or readings. No numbers of any kind."
@@ -108,7 +111,7 @@ OPENERS = ("warning", "caution", "emergency", "attention", "detecting", "scans",
 PURPLE = {"stirs", "stir", "breathes", "breathe", "consumes", "consume", "devours", "devour", "abyss", "void",
           "whisper", "whispers", "lurks", "lurking", "shadow", "shadows", "darkness", "eternal", "ancient",
           "hunger", "hungers", "black", "blackness", "vast", "maw", "dread", "nightmare", "watches", "watching"}
-READY = "Emergency companion online. Primary directive: keep you alive on an alien world."
+READY = "Link established. Emergency companion online. Primary directive: keep you alive on an alien world."
 # Critical topics never wait for the model or the synthesizer: the template plays from the cache at once.
 CRITICAL = {"oxygen_critical", "threat_contact", "phantom"}
 FALLBACK = {
@@ -117,7 +120,7 @@ FALLBACK = {
     "threat": "Detecting a large lifeform in the vicinity. Assessment: avoid.",
     "threat_contact": "Warning: proximity contact. Remain still.",
     "lost": "No known structures within range. Retracing your descent is a proven survival strategy.",
-    "depth": "Caution: passing safe depth. Adding report to databank.",
+    "depth": "Caution: passing safe depth.",
     "ambient": "Local acoustic activity exceeds baseline. Continuing to monitor.",
     "phantom": "Detecting a large lifeform in the vicinity. Bearing unresolved.",  # the one lie, at high dread, once
     None: "Environmental change detected. Explanation unclear at this time.",
@@ -139,19 +142,26 @@ TOPIC = {"oxygen": "the oxygen reserve", "oxygen_critical": "the oxygen reserve"
 # is fixed, so these are original lines in that register, rotated without repeats, at zero latency.
 POOLED = {"ambient", "threat", "depth"}
 DEPTH_LINES = [
-    "Caution: passing safe depth. Adding report to databank.",
+    "Caution: passing safe depth. Position logged.",
     "Caution: passing safe depth. Continuing descent is not advised.",
     "Depth exceeds suit rating. Assessment: immediate ascent required.",
     "Warning: approaching crush depth.",
     "Caution: this suit is not rated for further descent. Exploration is conducted at your own risk.",
 ]
-THREAT_LINES = [
+THREAT_LINES = [  # leviathan tier
     "Detecting a large lifeform in the vicinity. Assessment: avoid.",
     "Detecting a leviathan class lifeform in the immediate vicinity. Are you certain whatever you're doing is worth it?",
     "Warning: large lifeform closing on this position. Consider remaining still.",
-    "Lifeform behavior in this region is consistent with predation. Adding report to databank.",
+    "Lifeform behavior in this region is consistent with predation. Continuing to monitor.",
     "Detecting a large lifeform with an interest in this position. Reason unknown.",
     "Caution: proximity to a large lifeform. Exploration is conducted at your own risk.",
+]
+PREDATOR_LINES = [  # predator tier, the register of the databank's assessments
+    "Detecting a hostile lifeform in the vicinity. Assessment: avoid or distract.",
+    "Warning: hostile lifeform closing on this position. Consider a flare, or remaining still.",
+    "Detecting territorial behavior in a nearby lifeform. Assessment: leave its territory.",
+    "Caution: hostile lifeform in the immediate vicinity. Unpredictable attacks are documented.",
+    "Detecting a pack lifeform in the vicinity. Assessment: distract, and avoid close contact.",
 ]
 AMBIENT_LINES = [
     "Local acoustic activity exceeds baseline. Continuing to monitor.",
@@ -164,9 +174,11 @@ AMBIENT_LINES = [
     "Vital signs elevated. This is considered a normal response.",
     "Environmental scan complete. Results withheld pending your survival.",
     "Logging position. In the event of your disappearance, this data may assist recovery.",
-    "Adding report to databank. Category: unexplained.",
+    "Anomalous reading logged. Category: unexplained.",
 ]
-POOLS = {"threat": THREAT_LINES, "ambient": AMBIENT_LINES, "depth": DEPTH_LINES}
+POOLS = {"threat": THREAT_LINES, "predator": PREDATOR_LINES, "ambient": AMBIENT_LINES, "depth": DEPTH_LINES}
+MODEL_TOPICS = {"oxygen", "lost"}  # the only lines the model writes; both are slow-moving, so they can be prefetched
+ESCALATION = [(0.33, "routine"), (0.66, "elevated"), (0.85, "high"), (9.0, "critical")]
 # A model line must be about its topic. One of these words, or the template plays.
 TOPIC_WORDS = {
     "oxygen": {"oxygen", "air", "ascend", "ascent", "ascending", "breath", "breathing", "surface", "replenish",
@@ -211,6 +223,14 @@ def air_near(t: dict[str, Any]) -> bool:
     return d is not None and d < AIR_SOURCE_M
 
 
+def threat_range(t: dict[str, Any]) -> tuple[float | None, bool]:
+    """Effective range of the nearest hostile and whether it is a predator rather than a leviathan.
+    Predator ranges are scaled by PREDATOR_SCALE so the same zones and lines apply."""
+    td, pd = t.get("threat_dist"), t.get("predator_dist")
+    cands = ([(td, False)] if td is not None else []) + ([(pd * PREDATOR_SCALE, True)] if pd is not None else [])
+    return min(cands) if cands else (None, False)
+
+
 def can_surface(t: dict[str, Any]) -> bool | None:
     """Whether the air left carries the diver to the surface at ASCENT_MPS. None without an oxygen reading."""
     if t.get("o2") is None:
@@ -239,24 +259,25 @@ def zone(td: float | None, ttc: float | None = None) -> tuple[str | None, float]
     return None, 0.0
 
 
-def describe(t: dict[str, Any], topic: str | None, o2max: float = O2_MAX_MIN) -> str:
+def describe(t: dict[str, Any], topic: str | None, o2max: float = O2_MAX_MIN, dread: float = 0.0) -> str:
     """Qualitative situation for the model. The model varies the phrasing, it never sees the numbers."""
     o2 = None if t.get("o2") is None else t["o2"] / o2max
     rel = t.get("threat_rel")
+    rng, predator = threat_range(t)
+    who = "A hostile lifeform" if predator else "A large lifeform"
     parts = [  # the register's own nouns, so the model reports the lifeform and the reserve, not "pressure"
         band(o2, [(CRIT_O2_FRAC, "Oxygen reserve critical."), (LOW_O2_FRAC, "Oxygen reserve low."),
                   (0.7, "Oxygen reserve reduced.")]),
         "Surface distance exceeds remaining supply." if can_surface(t) is False else None,
         "A replenishment source is within reach." if air_near(t) and o2 is not None and o2 < 0.7 else None,
-        band(t.get("threat_dist"), [(CONTACT_M, f"A large lifeform is in contact range, {rel}." if rel
-                                                else "A large lifeform is in contact range."),
-                                    (THREAT_M, "A large lifeform is in the immediate vicinity."),
-                                    (2 * THREAT_M, "A large lifeform is in the region.")]),
+        band(rng, [(CONTACT_M, f"{who} is in contact range, {rel}." if rel else f"{who} is in contact range."),
+                   (THREAT_M, f"{who} is in the immediate vicinity."), (2 * THREAT_M, f"{who} is in the region.")]),
         band(t.get("dist_home"), [(2 * LOST_M, "No known structures within range."), (LOST_M, "Far from any known structure.")],
              above=True),
         band(t.get("depth"), [(400, "Safe depth exceeded by a wide margin."), (DEEP_M, "Safe depth exceeded.")],
              above=True),
         "Light levels below detection." if is_dark(t) else None,
+        f"Escalation {next(label for limit, label in ESCALATION if dread < limit)}.",
     ]
     return " ".join([p for p in parts if p] + [f"Report on {TOPIC[topic]}. One line."])
 
@@ -268,7 +289,8 @@ def tone(dread: float) -> str:
 def situation(t: dict[str, Any], o2max: float = O2_MAX_MIN, closing: float = 0.0) -> dict[str, Any]:
     """Flatten one telemetry frame into flags, persona weights, the winning persona and the dominant signal.
     `closing` is the nearest threat's approach speed in m/s; a fast approach is near before it is close."""
-    o2, td, home = t.get("o2"), t.get("threat_dist"), t.get("dist_home")
+    o2, home = t.get("o2"), t.get("dist_home")
+    td, _ = threat_range(t)
     depth = t.get("depth") or 0.0
     o2f = None if o2 is None else o2 / o2max
     ttc = time_to_contact(td, closing)
@@ -287,16 +309,19 @@ def situation(t: dict[str, Any], o2max: float = O2_MAX_MIN, closing: float = 0.0
         "lost": clamp((home - LOST_M / 2) / LOST_M) if home is not None else 0.0,
         "depth": clamp((depth - DEEP_M) / DEEP_M),
     }
-    survivor = max(signals["oxygen"], signals["threat"]) * SURVIVAL_PRIORITY
+    # Life outranks the way home two to one, but only once life is actually at risk: a leviathan patrolling at
+    # the edge of range does not make the PDA a survivalist. Ties go to Explorer, listed first.
+    priority = SURVIVAL_PRIORITY if any(flags[k] for k in SURVIVAL_FLAGS) else 1.0
+    survivor = max(signals["oxygen"], signals["threat"]) * priority
     navigator = signals["lost"]
     explorer = 1.0 - min(1.0, max(survivor, navigator))
     total = survivor + navigator + explorer
-    weights = {"survivor": survivor / total, "navigator": navigator / total, "explorer": explorer / total}
+    weights = {"explorer": explorer / total, "survivor": survivor / total, "navigator": navigator / total}
     dominant = max(signals, key=signals.get)
     return {
         "flags": flags,
         "weights": {k: round(v, 3) for k, v in weights.items()},
-        "persona": max(weights, key=weights.get),  # survivor is first, so it wins ties
+        "persona": max(weights, key=weights.get),
         "dominant": dominant if signals[dominant] > 0 else None,
     }
 
@@ -357,8 +382,10 @@ def ask(llm: str, system: str, user: str) -> str:
 def template(topic: str | None, t: dict[str, Any]) -> str:
     """The fixed line for a topic, made concrete only where it must be: relation at contact, air and surface
     for oxygen. These are the only lines that may point anywhere."""
-    if topic == "threat_contact" and t.get("threat_rel"):
-        return f"Warning: proximity contact. {t['threat_rel'][0].upper()}{t['threat_rel'][1:]}. Remain still."
+    if topic == "threat_contact":
+        kind = "hostile contact" if threat_range(t)[1] else "proximity contact"
+        rel = t.get("threat_rel")
+        return f"Warning: {kind}. {rel[0].upper()}{rel[1:]}. Remain still." if rel else f"Warning: {kind}. Remain still."
     if topic in FALLBACK_AIR_NEAR and air_near(t):
         if can_surface(t) is False and topic == "oxygen_critical":
             return NO_SURFACE_AIR_NEAR
@@ -378,7 +405,7 @@ def hint(
     if llm and topic not in CRITICAL:
         system = SYSTEM.format(persona=sit["persona"], style=STYLES[sit["persona"]], tone=tone(dread))
         try:
-            text = ask(llm, system, describe(t, topic, o2max)).strip().strip('"')
+            text = ask(llm, system, describe(t, topic, o2max, dread)).strip().strip('"')
             if any(c.isdigit() for c in text):  # the model was given no numbers, so any number is invented
                 raise ValueError(f"invented a reading: {text!r}")
             words = set(text.lower().replace(",", " ").replace(".", " ").split())
@@ -429,22 +456,56 @@ class Fathom:
         self.phantoms = 0
         self.rng = random.Random()
         self.pools: dict[str, list[str]] = {}
+        self.prefetched: dict[str, tuple[tuple[Any, ...], str, str]] = {}  # topic -> (key, text, source)
+        self.prefetching: set[str] = set()
         self.frames: deque[dict[str, Any]] = deque(maxlen=600)  # five minutes at 2 Hz, for the dashboard
         self.hints: list[dict[str, Any]] = []
         self.session = SESSIONS / (time.strftime("%Y%m%d-%H%M%S") + ".jsonl")
         if llm == "ollama":
             warm_ollama()
 
-    def next_pooled(self, topic: str) -> str:
+    def next_pooled(self, topic: str, t: dict[str, Any]) -> str:
         """The next line from a topic's pool, every line once before any repeats, in a fresh order each cycle."""
-        if not self.pools.get(topic):
-            self.pools[topic] = list(POOLS[topic])
-            self.rng.shuffle(self.pools[topic])
-        return self.pools[topic].pop()
+        pool = "predator" if topic == "threat" and threat_range(t)[1] else topic
+        if not self.pools.get(pool):
+            self.pools[pool] = list(POOLS[pool])
+            self.rng.shuffle(self.pools[pool])
+        return self.pools[pool].pop()
+
+    @staticmethod
+    def prefetch_key(topic: str, t: dict[str, Any]) -> tuple[Any, ...]:
+        """What a prefetched line depends on. If this changes before the trigger, the line is written again."""
+        return (topic, air_near(t), can_surface(t))
+
+    def maybe_prefetch(self, t: dict[str, Any], sit: dict[str, Any]) -> None:
+        """A model line costs a second to write and several to synthesize. Oxygen and the way back move slowly,
+        so their lines are written and cached while the situation is still approaching the threshold."""
+        if not self.llm or not self.log:
+            return
+        o2f = None if t.get("o2") is None else t["o2"] / self.o2max
+        home = t.get("dist_home")
+        due = {"oxygen": o2f is not None and o2f < LOW_O2_FRAC + PREFETCH_O2_MARGIN and not sit["flags"]["low_oxygen"],
+               "lost": home is not None and home > LOST_M * PREFETCH_LOST_FRAC and not sit["flags"]["player_lost"]}
+        for topic, wanted in due.items():
+            key = self.prefetch_key(topic, t)
+            if wanted and topic not in self.prefetching and self.prefetched.get(topic, (None,))[0] != key:
+                self.prefetching.add(topic)
+                threading.Thread(target=self.prefetch, args=(topic, key, dict(t), sit), daemon=True).start()
+
+    def prefetch(self, topic: str, key: tuple[Any, ...], t: dict[str, Any], sit: dict[str, Any]) -> None:
+        try:
+            text, source, _ = hint(t, sit, topic, self.llm, self.dread, self.o2max)
+            pda_voice.generate(text)
+            self.prefetched[topic] = (key, text, source)
+        except Exception as e:  # a failed prefetch only means the trigger pays the full price
+            print(f"[fathom] prefetch of {topic} failed: {e!r}", file=sys.stderr)
+        finally:
+            self.prefetching.discard(topic)
 
     def update_dread(self, t: dict[str, Any], now: float, zone_rate: float) -> None:
         dt = max(0.0, now - self.prev_t) if self.prev_t is not None else 0.0
         depth, home = t.get("depth") or 0.0, t.get("dist_home")
+        # ponytail: predators raise dread through the zone rate only; a per-species temper needs the object dump
         if depth > DEEP_M:
             self.dread += DREAD_DEEP_PER_S * dt
         self.dread += zone_rate * dt
@@ -458,13 +519,16 @@ class Fathom:
         if t.get("o2") is not None:
             self.o2max = max(self.o2max, t["o2"])
         now = self.now()
-        td = t.get("threat_dist")
+        td, _ = threat_range(t)
         dt = now - self.prev_t if self.prev_t is not None else 0.0
         closing = (self.prev_td - td) / dt if td is not None and self.prev_td is not None and dt > 0 else 0.0
         ttc = time_to_contact(td, closing)
         zone_name, zone_rate = zone(td, ttc)
         sit = situation(t, self.o2max, closing)
         self.update_dread(t, now, zone_rate)
+        self.maybe_prefetch(t, sit)
+        self.prefetched = {k: v for k, v in self.prefetched.items()
+                           if v[0] == self.prefetch_key(k, t)}  # a line written for a different situation is stale
         out = None
         topic = why_speak(self.prev, sit, self.last_spoke, now)
         quiet_and_deep = topic is None and (t.get("depth") or 0.0) > DEEP_M and now - self.last_spoke >= AMBIENT_S
@@ -475,8 +539,11 @@ class Fathom:
         elif quiet_and_deep and self.dread >= AMBIENT_DREAD:
             topic = "ambient"
         if topic:
+            ready = self.prefetched.pop(topic, None)
             if topic in POOLED:
-                text, source, latency = self.next_pooled(topic), "pool", 0.0
+                text, source, latency = self.next_pooled(topic, t), "pool", 0.0
+            elif ready and ready[0] == self.prefetch_key(topic, t):
+                text, source, latency = ready[1], ready[2] + "+prefetch", 0.0
             else:
                 text, source, latency = hint(t, sit, topic, self.llm, self.dread, self.o2max)
             self.last_spoke = now
@@ -492,7 +559,7 @@ class Fathom:
         frame = {**t, "t": time.time(), "flags": sit["flags"], "weights": sit["weights"], "persona": sit["persona"],
                  "dominant": sit["dominant"], "dread": round(self.dread, 3), "o2max": self.o2max, "dark": is_dark(t),
                  "zone": zone_name, "closing": round(closing, 1), "ttc": None if ttc is None else round(ttc, 1),
-                 "can_surface": can_surface(t),
+                 "can_surface": can_surface(t), "prefetched": sorted(self.prefetched),
                  "hint": out and {k: out[k] for k in ("topic", "text", "source", "latency_s")}}
         self.frames.append(frame)
         if self.log:
@@ -535,21 +602,28 @@ def backend(argv: list[str]) -> str | None:
 def main() -> None:
     fathom = Fathom(backend(sys.argv))
     pda_voice.prewarm([READY, *FALLBACK_AIR_NEAR.values(), *FALLBACK_NO_SURFACE.values(), NO_SURFACE_AIR_NEAR,
-                       *(v for k, v in FALLBACK.items() if k), *THREAT_LINES, *AMBIENT_LINES, *DEPTH_LINES])
+                       *(v for k, v in FALLBACK.items() if k), *THREAT_LINES, *PREDATOR_LINES, *AMBIENT_LINES,
+                       *DEPTH_LINES, "Warning: hostile contact. Remain still."])
     serve_dashboard(fathom)
     print(f"FATHOM watching {TELEMETRY} ({fathom.llm or 'offline'}), dashboard http://127.0.0.1:{DASHBOARD_PORT}, "
-          f"recording {fathom.session.name}")
-    speak(READY)  # model warmed, dashboard up, recorder open: say so in the PDA voice
-    mtime = 0.0
+          f"recording {fathom.session.name}. Waiting for the game.")
+    mtime, linked = 0.0, False
     while True:
         try:
             m = TELEMETRY.stat().st_mtime
-            if m != mtime:
+            if m != mtime and time.time() - m < 3:  # only frames the mod wrote just now count as a link
                 mtime = m
+                if not linked:
+                    linked = True
+                    print("link live")
+                    speak(READY)  # the game is writing telemetry: now the link is real
                 out = fathom.step(json.loads(TELEMETRY.read_text()))
                 if out:
                     print(f"[{out['source']} {out['latency_s']}s {out['persona']}/{out['topic']} dread {out['dread']}] "
                           f"{out['text']}")
+            elif linked and time.time() - m > 10:
+                linked = False
+                print("link lost")
         except (FileNotFoundError, json.JSONDecodeError):
             pass
         time.sleep(0.25)
