@@ -398,9 +398,11 @@ def hint(
                 raise ValueError(f"not the PDA's register: {text!r}")
             if 0 < len(text.split()) <= MAX_WORDS:
                 return text, "llm", time.perf_counter() - start
-            print(f"[fathom] {llm} over {MAX_WORDS} words: {text!r}", file=sys.stderr)
-        except Exception as e:  # any backend failure falls through to the template; the PDA never goes silent
-            print(f"[fathom] {llm} failed: {e!r}", file=sys.stderr)
+            print(f"[fathom] line rejected, over {MAX_WORDS} words: {text!r}", file=sys.stderr)
+        except ValueError as e:  # the model answered; the guard refused the answer
+            print(f"[fathom] line rejected, {e}", file=sys.stderr)
+        except Exception as e:  # the model did not answer in time, or Ollama is down; the template covers it
+            print(f"[fathom] {llm} unavailable: {e!r}", file=sys.stderr)
     return template(topic, t), "fallback", time.perf_counter() - start
 
 

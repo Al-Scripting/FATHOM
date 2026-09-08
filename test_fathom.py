@@ -79,6 +79,11 @@ def test_guards() -> None:
             fathom.ask = ASK
         assert source == "fallback" and text == fathom.FALLBACK["oxygen"], bad
     assert fathom.hint(t, fathom.situation(t), "lost", None)[1] == "fallback"  # no model, the template
+    fathom.ask = lambda *a: (_ for _ in ()).throw(TimeoutError("timed out"))  # type: ignore[assignment]
+    try:
+        assert fathom.hint(t, fathom.situation(t), "oxygen", "ollama")[1] == "fallback"  # model down, the template
+    finally:
+        fathom.ask = ASK
     fathom.ask = lambda *a: "Caution: oxygen reserve low. Consider ascending."  # type: ignore[assignment]
     try:
         assert fathom.hint(t, fathom.situation(t), "oxygen", "ollama")[1] == "llm"
