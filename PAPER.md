@@ -66,15 +66,25 @@ or the dominant signal changes after a 10 s cooldown. Unprompted lines: after 18
 dread ≥ 0.6, one ambient line; with dread ≥ 0.8, no creature in range and probability 0.35, at most once per
 session, a phantom contact.
 
-**Language model.** gemma3:4b on Ollama, locally, 2.5 s budget, 30 tokens, temperature 0.3. The model receives only
-qualitative bands, never numbers, and is held to the PDA's register: plain English, a reading and one instruction,
-no metaphor. Output is rejected, and the template plays, if it contains a digit, a bearing word, no word from its
-topic's vocabulary, or a word from a short "purple" list (stirs, breathes, abyss, void, vast and the like), which a
-4B model reaches for when asked to be unsettling. Critical topics (contact, oxygen critical, phantom) bypass the
-model entirely and play a cached template at 0 s. Unprompted ambient lines are not generated either: they come from
-a pool of eleven plain readouts that unsettle by implication ("Motion on the sonar. Nothing on the visual."),
-rotated without repeats. Templates are the only lines that may point anywhere, and only at contact or when naming
-the surface or an air source.
+**Register.** The line set of the first game (222 lines with triggers) and the databank of the second (41 creature
+entries, each closing in an assessment) were analysed to derive the PDA's register: six sentence shapes (prefix and
+condition; "Detecting" and reading; "Scans indicate" and fact; fact and verdict; corporate survival advice; the
+deadpan tag), present tense, impersonal, severity carried by Caution/Warning/Emergency rather than adjectives, a
+horrifying fact delivered at the pitch of a routine one, no metaphor. The analysis is in `docs/pda_register.md`.
+The prompt, every template and the quiet-minute pool were rebuilt on it.
+
+**Language model.** gemma3:4b on Ollama, locally, 2.5 s budget, 30 tokens, temperature 0.3. The model receives the
+situation in the register's own nouns ("Oxygen reserve low. A large lifeform is in the immediate vicinity."), never
+numbers, with the register's shapes and seven of the game's lines as examples. Output is rejected, and the template
+plays, if it does not open the way the PDA opens, contains a digit, a bearing word, a percentage, no word from its
+topic's vocabulary, or a word from a short "purple" list (stirs, breathes, abyss, void, vast), which a 4B model
+reaches for when asked to be unsettling. Critical topics (contact, oxygen critical, phantom) bypass the model and
+play a cached template at 0 s. Unprompted ambient lines come from a pool of eleven original lines in the register
+("Scans show the digestive tracts of nearby lifeforms contain tissue of unknown origin."), rotated without repeats.
+Creature lines are pooled as well (six original lines in the register), because the model, asked about a lifeform,
+describes anatomy the PDA never would; the model is left the three situations where phrasing depends on context:
+oxygen, depth and the way back. Templates are the only lines that may point anywhere, and only at contact or when
+naming the surface or an air source.
 
 **Oxygen honesty.** The system computes whether the remaining air reaches the surface at 2 m/s. When it does not,
 "ascend" is replaced by "the surface is out of reach", with "replenish now" when an air source is within 40 m.
@@ -102,8 +112,8 @@ crisis), fallback rate among model-eligible lines, median latency, and phantom c
 |---|---|---|
 | Relevance | 7/8 | 11/11 |
 | Persona tracking | 8/8 | 11/11 |
-| Fallback rate | ≤ 14% | 8% of 13 model lines (one off-topic line rejected); 8 critical and pooled lines by design |
-| Median latency | 1.2 s | 0.7 s (sim), 1.0 to 1.6 s in game |
+| Fallback rate | ≤ 14% | 0% of 10 model lines; 11 critical and pooled lines by design |
+| Median latency | 1.2 s | 1.2 s with the GPU shared by another application, 0.25 to 0.7 s idle |
 | Silence in the control | required | held |
 
 These are mechanical checks of the policy, not measures of experience.

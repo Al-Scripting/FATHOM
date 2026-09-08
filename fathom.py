@@ -31,7 +31,7 @@ DASHBOARD_PORT = 8765
 
 OLLAMA_MODEL = "gemma3:4b"  # llama3.2:3b measured 0.23 s but invented readings in 30% of lines
 OLLAMA_URL = "http://127.0.0.1:11434/api/chat"  # not localhost: the IPv6 attempt costs 2 s on Windows
-OLLAMA_OPTIONS = {"num_predict": 30, "temperature": 0.3, "num_ctx": 1024}  # tiny KV cache, stays on GPU
+OLLAMA_OPTIONS = {"num_predict": 30, "temperature": 0.2, "num_ctx": 1024}  # tiny KV cache, stays on GPU
 CLAUDE_MODEL = "claude-opus-5"
 BUDGET_S = 2.5  # in-game the GPU is shared with the game: 1.0 to 1.6 s per hint, vs 0.25 s in the sim
 COOLDOWN_S = 10.0
@@ -66,83 +66,112 @@ DREAD_PER_HINT = 0.15  # every crisis the PDA had to speak about
 DREAD_DECAY_PER_S = 1 / 120  # two minutes at the surface or by a structure to calm down
 AMBIENT_S = 180.0  # quiet this long, deep, with dread high: one unprompted line
 AMBIENT_DREAD = 0.6
-TONES = [(0.33, "Tone: a calm instrument."), (0.66, "Tone: clipped. Shorter than usual."),
-         (9.0, "Tone: flat and factual about a reading that should not be there. Report the reading, not a feeling.")]
+TONES = [(0.33, "Tone: routine."), (0.66, "Tone: clipped. Shorter than usual."),
+         (9.0, "Tone: a routine report of a reading that should not exist. Same pitch as a low battery.")]
 
 STYLES = {
-    "survivor": "Terse imperative. The single most urgent thing, nothing else.",
-    "navigator": "One orientation cue tied to what the diver did: their depth, the way they came, the light. No bearing.",
-    "explorer": "One plain observation about the surroundings, stated as a sensor reading.",
+    "survivor": "One warning and one instruction. Nothing else.",
+    "navigator": "One fact about the way back, framed as survival advice. No bearing.",
+    "explorer": "One environmental reading, closed with an assessment, or with 'Reason unknown.'",
 }
+# The register is the Alterra PDA's: a survival instrument rebooted with one directive. It reports readings, issues
+# verdicts and files paperwork in the same flat voice whatever the reading is. The humor is never stated; it is the
+# gap between the fact and the tone. See docs/pda_register.md for the line set this was built from.
 SYSTEM = (
-    "You are the PDA of a lone diver on an alien ocean world: a diagnostic instrument that reports readings and "
-    f"gives one instruction. Reply with one line of at most {MAX_WORDS} words and nothing else: no quotes, no name, "
-    "no explanation. Plain English. Short declarative sentences. No metaphor, no poetry, no adjectives about "
-    "darkness or size. Never give bearings, coordinates, numbers, or species names. Never reassure. Examples of "
-    "the register:\n"
-    "Oxygen critical. Ascend.\n"
-    "Detecting a leviathan class lifeform in the region. Are you certain whatever you're doing is worth it?\n"
-    "Acoustic contact. Unclassified.\n"
-    "Large biomass reading. Source unresolved.\n"
-    "The last known structure is behind you, and above.\n"
-    "Persona: {persona}. {style} {tone} Say only what the situation says. Do not invent equipment, places, or "
-    "readings. No numbers."
+    "You are the PDA of a lone survivor on an alien ocean world: a formal, impersonal survival instrument that "
+    "reports readings and delivers verdicts. Its humor is deadpan and never stated. Reply with one line of at most "
+    f"{MAX_WORDS} words and nothing else: no quotes, no name, no explanation.\n"
+    "Use one of these shapes: 'Warning: <condition>.' / 'Caution: <condition>.' / 'Detecting <condition>.' / "
+    "'Scans indicate <fact>.' / '<condition>. Assessment: <verdict>.' / '<fact>. Reason unknown.' / "
+    "'Consider <action>.' Conditions are qualitative words: low, critical, reduced, increased, exceeded, unknown. "
+    "Never a number, a percentage, a distance or a depth value. Institutional phrasing, present tense, no "
+    "exclamation marks, no metaphor, no anatomy, no adjectives about darkness or size. Never give bearings, "
+    "coordinates, or species names. Never reassure.\n"
+    "Examples of the register:\n"
+    "Warning: oxygen critical. Ascend.\n"
+    "Caution: passing safe depth.\n"
+    "Detecting increased local radiation levels. Continuing to monitor.\n"
+    "Detecting multiple leviathan class lifeforms in the region. Are you certain whatever you're doing is worth it?\n"
+    "Detecting unusually passive behavioral patterns in nearby predators. Reason unknown.\n"
+    "Caution: scans show the digestive tracts of nearby lifeforms contain human tissues.\n"
+    "Warning: entering ecological dead zone. Adding report to databank.\n"
+    "No known structures within range. Retracing your descent is a proven survival strategy.\n"
+    "Persona: {persona}. {style} {tone} Say only what the situation says, in its own words. Do not invent "
+    "equipment, places, anatomy or readings. No numbers of any kind."
 )
+# A model line must open the way the PDA opens. Anything else is not the PDA and falls to the template.
+OPENERS = ("warning", "caution", "emergency", "attention", "detecting", "scans", "scan ", "lifeform", "oxygen",
+           "vital", "local", "multiple", "no known", "assessment", "adding", "approaching", "depth", "pressure",
+           "contact", "proximity", "environmental", "hull", "consider", "structural", "ambient", "biological",
+           "acoustic", "unidentified", "large", "surface", "logging", "recording", "continuing", "reason")
 # A small model reaches for these when told to be ominous. They are poetry, not readings; the line is discarded.
 PURPLE = {"stirs", "stir", "breathes", "breathe", "consumes", "consume", "devours", "devour", "abyss", "void",
           "whisper", "whispers", "lurks", "lurking", "shadow", "shadows", "darkness", "eternal", "ancient",
           "hunger", "hungers", "black", "blackness", "vast", "maw", "dread", "nightmare", "watches", "watching"}
-READY = "Companion link established. Monitoring vitals and surroundings."
+READY = "Emergency companion online. Primary directive: keep you alive on an alien world."
 # Critical topics never wait for the model or the synthesizer: the template plays from the cache at once.
 CRITICAL = {"oxygen_critical", "threat_contact", "phantom"}
 FALLBACK = {
-    "oxygen": "Oxygen low. Plan your ascent.",
-    "oxygen_critical": "Oxygen critical. Ascend.",
-    "threat": "Something large is close. Stay still, or leave quietly.",
-    "threat_contact": "Contact. Do not move.",
-    "lost": "No known structures in range. Retrace your descent.",
-    "depth": "Depth exceeds suit rating. Watch your oxygen.",
-    "ambient": "Acoustic contact. Unclassified.",
-    "phantom": "Acoustic contact. Bearing unresolved.",  # the one lie the PDA tells, at high dread, once
-    None: "Environmental change detected.",
+    "oxygen": "Caution: oxygen reserve low. Consider beginning your ascent.",
+    "oxygen_critical": "Warning: oxygen critical. Ascend.",
+    "threat": "Detecting a large lifeform in the vicinity. Assessment: avoid.",
+    "threat_contact": "Warning: proximity contact. Remain still.",
+    "lost": "No known structures within range. Retracing your descent is a proven survival strategy.",
+    "depth": "Caution: passing safe depth. Adding report to databank.",
+    "ambient": "Local acoustic activity exceeds baseline. Continuing to monitor.",
+    "phantom": "Detecting a large lifeform in the vicinity. Bearing unresolved.",  # the one lie, at high dread, once
+    None: "Environmental change detected. Explanation unclear at this time.",
 }
 FALLBACK_AIR_NEAR = {  # same topics when a source of air is within AIR_SOURCE_M
-    "oxygen": "Oxygen low. A source of air is within reach.",
-    "oxygen_critical": "Oxygen critical. Replenish now.",
+    "oxygen": "Caution: oxygen reserve low. A replenishment source is within reach.",
+    "oxygen_critical": "Warning: oxygen critical. Replenish now.",
 }
 FALLBACK_NO_SURFACE = {  # the surface is further than the air will carry the diver
-    "oxygen": "Oxygen low. The surface is beyond your air.",
-    "oxygen_critical": "Oxygen critical. The surface is out of reach.",
+    "oxygen": "Caution: oxygen reserve low. Surface distance exceeds remaining supply.",
+    "oxygen_critical": "Warning: oxygen critical. Surface distance exceeds remaining supply.",
 }
-TOPIC = {"oxygen": "the oxygen", "oxygen_critical": "the oxygen", "threat": "the creature",
-         "threat_contact": "the creature", "lost": "the way back", "depth": "the depth",
-         "ambient": "what it senses in the dark", "phantom": "what it senses in the dark", None: "the situation"}
-# Unprompted lines are not generated: a 4B model asked to be unsettling writes poetry, and asked to be plain writes
-# nothing. These are plain readouts that unsettle by implication, the original PDA's trick. Rotated without repeats.
-POOLED = {"ambient"}
+NO_SURFACE_AIR_NEAR = "Warning: oxygen critical. Surface distance exceeds remaining supply. Replenish now."
+TOPIC = {"oxygen": "the oxygen reserve", "oxygen_critical": "the oxygen reserve", "threat": "the lifeform",
+         "threat_contact": "the lifeform", "lost": "the way back", "depth": "the depth",
+         "ambient": "the surroundings", "phantom": "the surroundings", None: "the situation"}
+# Pooled topics are not generated. Unprompted lines: a 4B model asked to be unsettling writes poetry, and asked to
+# be plain writes nothing. Creature lines: asked about a lifeform it describes anatomy. The PDA's register for both
+# is fixed, so these are original lines in that register, rotated without repeats, at zero latency.
+POOLED = {"ambient", "threat"}
+THREAT_LINES = [
+    "Detecting a large lifeform in the vicinity. Assessment: avoid.",
+    "Detecting a leviathan class lifeform in the immediate vicinity. Are you certain whatever you're doing is worth it?",
+    "Warning: large lifeform closing on this position. Consider remaining still.",
+    "Lifeform behavior in this region is consistent with predation. Adding report to databank.",
+    "Detecting a large lifeform with an interest in this position. Reason unknown.",
+    "Caution: proximity to a large lifeform. Exploration is conducted at your own risk.",
+]
 AMBIENT_LINES = [
-    "Acoustic contact. Unclassified.",
-    "Large biomass reading. Source unresolved.",
-    "Motion on the sonar. Nothing on the visual.",
-    "Something passed the sonar edge. Contact lost.",
-    "Water temperature rising. No known source.",
-    "Biological signature matches nothing on record.",
-    "Multiple contacts. Range indeterminate.",
-    "Ambient light below detection. Switching to sonar.",
-    "Vital signs elevated. Cause unknown.",
-    "Sensor sweep incomplete. Retrying.",
-    "Recording. In case.",
+    "Local acoustic activity exceeds baseline. Continuing to monitor.",
+    "Detecting a large lifeform in the region. Reason for its interest: unknown.",
+    "Lifeform readings in this region are sparse. Explanation unclear at this time.",
+    "Scans show the digestive tracts of nearby lifeforms contain tissue of unknown origin.",
+    "Detecting unusually coordinated movement among nearby lifeforms. Reason unknown.",
+    "Warning: entering a region with no prior survey data. Exploration is conducted at your own risk.",
+    "Multiple lifeform signatures converging on this position. Are you certain whatever you're doing is worth it?",
+    "Vital signs elevated. This is considered a normal response.",
+    "Environmental scan complete. Results withheld pending your survival.",
+    "Logging position. In the event of your disappearance, this data may assist recovery.",
+    "Adding report to databank. Category: unexplained.",
 ]
 # A model line must be about its topic. One of these words, or the template plays.
 TOPIC_WORDS = {
-    "oxygen": {"oxygen", "air", "ascend", "ascent", "breath", "breathing", "surface", "replenish", "reserve", "tank"},
-    "threat": {"contact", "movement", "motion", "lifeform", "biomass", "signature", "creature", "large", "sonar",
-               "proximity", "still", "evasive", "predator", "hostile", "approaching"},
+    "oxygen": {"oxygen", "air", "ascend", "ascent", "ascending", "breath", "breathing", "surface", "replenish",
+               "replenishment", "reserve", "reserves", "supply", "tank"},
+    "threat": {"contact", "movement", "motion", "lifeform", "lifeforms", "biomass", "signature", "creature",
+               "predator", "predators", "large", "sonar", "proximity", "vicinity", "still", "evasive", "hostile",
+               "approaching", "avoid", "assessment", "aggressive", "territorial"},
     "lost": {"structure", "structures", "descent", "path", "light", "surface", "way", "return", "route", "heading",
-             "retrace", "ascend", "back", "lifepod", "shelter"},
-    "depth": {"pressure", "depth", "hull", "crush", "ascend", "ascent", "descent", "deep", "suit", "rating"},
+             "retrace", "retracing", "ascend", "back", "lifepod", "shelter", "survival", "position", "bearing"},
+    "depth": {"pressure", "depth", "hull", "crush", "ascend", "ascent", "descent", "deep", "suit", "rating", "safe"},
 }
-BEARINGS = {"left", "right", "north", "south", "east", "west", "degrees", "meters", "metres", "percent"}
+BEARINGS = {"left", "right", "north", "south", "east", "west", "northern", "southern", "eastern", "western",
+            "northeast", "northwest", "southeast", "southwest", "degrees", "meters", "metres", "percent"}
 # Flag -> topic, most urgent first: when several flags rise on the same frame the first wins.
 FLAG_TOPIC = {"threat_contact": "threat_contact", "oxygen_critical": "oxygen_critical", "threat_near": "threat",
               "low_oxygen": "oxygen", "player_lost": "lost", "deep_zone": "depth"}
@@ -206,19 +235,22 @@ def describe(t: dict[str, Any], topic: str | None, o2max: float = O2_MAX_MIN) ->
     """Qualitative situation for the model. The model varies the phrasing, it never sees the numbers."""
     o2 = None if t.get("o2") is None else t["o2"] / o2max
     rel = t.get("threat_rel")
-    parts = [
-        band(o2, [(CRIT_O2_FRAC, "Oxygen is almost gone."), (LOW_O2_FRAC, "Oxygen is running out."), (0.7, "Oxygen is low.")]),
-        "The surface is out of reach." if can_surface(t) is False else None,
-        "A source of air is within reach." if air_near(t) and o2 is not None and o2 < 0.7 else None,
-        band(t.get("threat_dist"), [(CONTACT_M, f"Something large is right beside the diver, {rel}." if rel
-                                                else "Something large is right beside the diver."),
-                                    (THREAT_M, "Something large is close."), (2 * THREAT_M, "Something large is nearby.")]),
-        band(t.get("dist_home"), [(2 * LOST_M, "No known structure anywhere near."), (LOST_M, "Far from any known structure.")],
+    parts = [  # the register's own nouns, so the model reports the lifeform and the reserve, not "pressure"
+        band(o2, [(CRIT_O2_FRAC, "Oxygen reserve critical."), (LOW_O2_FRAC, "Oxygen reserve low."),
+                  (0.7, "Oxygen reserve reduced.")]),
+        "Surface distance exceeds remaining supply." if can_surface(t) is False else None,
+        "A replenishment source is within reach." if air_near(t) and o2 is not None and o2 < 0.7 else None,
+        band(t.get("threat_dist"), [(CONTACT_M, f"A large lifeform is in contact range, {rel}." if rel
+                                                else "A large lifeform is in contact range."),
+                                    (THREAT_M, "A large lifeform is in the immediate vicinity."),
+                                    (2 * THREAT_M, "A large lifeform is in the region.")]),
+        band(t.get("dist_home"), [(2 * LOST_M, "No known structures within range."), (LOST_M, "Far from any known structure.")],
              above=True),
-        band(t.get("depth"), [(400, "Beyond safe depth."), (DEEP_M, "Deep.")], above=True),
-        "It is dark." if is_dark(t) else None,
+        band(t.get("depth"), [(400, "Safe depth exceeded by a wide margin."), (DEEP_M, "Safe depth exceeded.")],
+             above=True),
+        "Light levels below detection." if is_dark(t) else None,
     ]
-    return " ".join([p for p in parts if p] + [f"Speak about {TOPIC[topic]}. One short line."])
+    return " ".join([p for p in parts if p] + [f"Report on {TOPIC[topic]}. One line."])
 
 
 def tone(dread: float) -> str:
@@ -318,10 +350,10 @@ def template(topic: str | None, t: dict[str, Any]) -> str:
     """The fixed line for a topic, made concrete only where it must be: relation at contact, air and surface
     for oxygen. These are the only lines that may point anywhere."""
     if topic == "threat_contact" and t.get("threat_rel"):
-        return f"Contact. {t['threat_rel'][0].upper()}{t['threat_rel'][1:]}. Do not move."
+        return f"Warning: proximity contact. {t['threat_rel'][0].upper()}{t['threat_rel'][1:]}. Remain still."
     if topic in FALLBACK_AIR_NEAR and air_near(t):
         if can_surface(t) is False and topic == "oxygen_critical":
-            return "Oxygen critical. The surface is out of reach. Replenish now."
+            return NO_SURFACE_AIR_NEAR
         return FALLBACK_AIR_NEAR[topic]
     if topic in FALLBACK_NO_SURFACE and can_surface(t) is False:
         return FALLBACK_NO_SURFACE[topic]
@@ -348,6 +380,8 @@ def hint(
                 raise ValueError(f"went purple: {text!r}")
             if topic in TOPIC_WORDS and not TOPIC_WORDS[topic] & words:
                 raise ValueError(f"off topic for {topic}: {text!r}")
+            if not text.lower().startswith(OPENERS):
+                raise ValueError(f"not the PDA's register: {text!r}")
             if 0 < len(text.split()) <= MAX_WORDS:
                 return text, "llm", time.perf_counter() - start
             print(f"[fathom] {llm} over {MAX_WORDS} words: {text!r}", file=sys.stderr)
@@ -386,18 +420,19 @@ class Fathom:
         self.o2max = O2_MAX_MIN
         self.phantoms = 0
         self.rng = random.Random()
-        self.ambient_pool: list[str] = []
+        self.pools: dict[str, list[str]] = {}
         self.frames: deque[dict[str, Any]] = deque(maxlen=600)  # five minutes at 2 Hz, for the dashboard
         self.hints: list[dict[str, Any]] = []
         self.session = SESSIONS / (time.strftime("%Y%m%d-%H%M%S") + ".jsonl")
         if llm == "ollama":
             warm_ollama()
 
-    def next_ambient(self) -> str:
-        if not self.ambient_pool:
-            self.ambient_pool = list(AMBIENT_LINES)
-            self.rng.shuffle(self.ambient_pool)
-        return self.ambient_pool.pop()
+    def next_pooled(self, topic: str) -> str:
+        """The next line from a topic's pool, every line once before any repeats, in a fresh order each cycle."""
+        if not self.pools.get(topic):
+            self.pools[topic] = list(THREAT_LINES if topic == "threat" else AMBIENT_LINES)
+            self.rng.shuffle(self.pools[topic])
+        return self.pools[topic].pop()
 
     def update_dread(self, t: dict[str, Any], now: float, zone_rate: float) -> None:
         dt = max(0.0, now - self.prev_t) if self.prev_t is not None else 0.0
@@ -433,7 +468,7 @@ class Fathom:
             topic = "ambient"
         if topic:
             if topic in POOLED:
-                text, source, latency = self.next_ambient(), "pool", 0.0
+                text, source, latency = self.next_pooled(topic), "pool", 0.0
             else:
                 text, source, latency = hint(t, sit, topic, self.llm, self.dread, self.o2max)
             self.last_spoke = now
@@ -491,9 +526,8 @@ def backend(argv: list[str]) -> str | None:
 
 def main() -> None:
     fathom = Fathom(backend(sys.argv))
-    pda_voice.prewarm([READY, *FALLBACK_AIR_NEAR.values(), *FALLBACK_NO_SURFACE.values(),
-                       "Oxygen critical. The surface is out of reach. Replenish now.",
-                       *(v for k, v in FALLBACK.items() if k)])
+    pda_voice.prewarm([READY, *FALLBACK_AIR_NEAR.values(), *FALLBACK_NO_SURFACE.values(), NO_SURFACE_AIR_NEAR,
+                       *(v for k, v in FALLBACK.items() if k), *THREAT_LINES, *AMBIENT_LINES])
     serve_dashboard(fathom)
     print(f"FATHOM watching {TELEMETRY} ({fathom.llm or 'offline'}), dashboard http://127.0.0.1:{DASHBOARD_PORT}, "
           f"recording {fathom.session.name}")

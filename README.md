@@ -7,8 +7,8 @@
   <img alt="UE4SS" src="https://img.shields.io/badge/mod-UE4SS_Lua-0b2a44?style=flat-square&labelColor=04101c&color=3fd7ff">
   <img alt="Ollama" src="https://img.shields.io/badge/LLM-local_Ollama-0b2a44?style=flat-square&labelColor=04101c&color=f0c987">
   <img alt="voice" src="https://img.shields.io/badge/voice-original_PDA-0b2a44?style=flat-square&labelColor=04101c&color=ff6a4d">
-  <img alt="latency" src="https://img.shields.io/badge/median_latency-0.7_s-0b2a44?style=flat-square&labelColor=04101c&color=3fd7ff">
-  <img alt="fallback" src="https://img.shields.io/badge/fallback-8%25-0b2a44?style=flat-square&labelColor=04101c&color=3fd7ff">
+  <img alt="latency" src="https://img.shields.io/badge/model_line-1.2_s-0b2a44?style=flat-square&labelColor=04101c&color=3fd7ff">
+  <img alt="fallback" src="https://img.shields.io/badge/fallback-0%25-0b2a44?style=flat-square&labelColor=04101c&color=3fd7ff">
 </p>
 
 <p align="center"><i>
@@ -34,23 +34,30 @@ refuses the second. It will tell you how deep you are. It will not tell you what
 
 ## Transmissions
 
-Every line below came out of the system. Model lines are written live by a local 4B model that is given only
-qualitative bands, never numbers, and is held to the PDA's register: plain English, a reading and one instruction,
-no metaphor. Template lines play instantly from the cache. Pooled lines are plain readouts for the quiet minutes,
-rotated without repeats. The first is from a real dive that ended with a Collector Leviathan at ten metres.
+Every line below came out of the system, in the register of the Alterra PDA: a survival instrument that reports
+readings, delivers verdicts and files paperwork in the same flat voice whatever the reading is. The humor is never
+stated. The register was rebuilt from the first game's line set and the second game's databank; the analysis is in
+[docs/pda_register.md](docs/pda_register.md). Model lines are written live by a local 4B model that is given only
+qualitative bands, never numbers, and must open the way the PDA opens. Template lines play instantly from the cache.
+Pooled lines are for the quiet minutes, rotated without repeats.
 
 | When | The PDA said | Source · persona · dread |
 |---|---|---|
-| A leviathan crosses 60 m, real dive | **"It's observing. Pressure increasing."** | model · survivor · 0.68 |
-| A leviathan crosses 60 m | **"Movement detected. Initiate evasive maneuvers."** | model · survivor · 0.15 |
-| The same creature at 20 m, instantly | **"Contact. Below, behind you. Do not move."** | template, 0 s · survivor · 0.85 |
-| Air at 40% of capacity | **"Oxygen levels decreasing. Initiate emergency ascent."** | model · survivor · 0.15 |
-| Air for 29 s, surface 3 minutes away, a tank 40 m off | **"Oxygen critical. The surface is out of reach. Replenish now."** | template, 0 s · survivor · 0.86 |
-| Far from anything, deep | **"Continue along your initial descent path."** | model · navigator · 0.33 |
-| Three quiet minutes at 300 m | **"Motion on the sonar. Nothing on the visual."** | pool · explorer · 1.00 |
-| Three more | **"Something passed the sonar edge. Contact lost."** | pool · explorer · 1.00 |
-| Three more | **"Recording. In case."** | pool · explorer · 1.00 |
-| Nothing there at all, once per dive, when dread is high | **"Acoustic contact. Bearing unresolved."** | the one lie it tells |
+| Air at 40% of capacity | **"Warning: oxygen levels are below sustainable parameters."** | model · survivor · 0.15 |
+| Air at 40%, a plant within reach | **"Caution: oxygen reserve low. A replenishment source is within reach."** | template · survivor |
+| Air for 29 s, surface 3 minutes away, a tank 40 m off | **"Warning: oxygen critical. Surface distance exceeds remaining supply. Replenish now."** | template, 0 s · survivor · 0.86 |
+| A leviathan crosses 60 m | **"Detecting a large lifeform in the vicinity. Assessment: avoid."** | pool, 0 s · survivor · 0.15 |
+| Another crosses 60 m | **"Detecting a leviathan class lifeform in the immediate vicinity. Are you certain whatever you're doing is worth it?"** | pool, 0 s · survivor |
+| Another | **"Lifeform behavior in this region is consistent with predation. Adding report to databank."** | pool, 0 s · survivor |
+| The same creature at 20 m, instantly | **"Warning: proximity contact. Below, behind you. Remain still."** | template, 0 s · survivor · 0.85 |
+| Passing 200 m | **"Detecting extreme hydrostatic pressure. Assessment: continued immersion is unsustainable."** | model · explorer · 0.15 |
+| Far from anything | **"Scans indicate a consistent current flow towards the initial descent point."** | model · navigator · 0.15 |
+| Far from anything | **"No known structures within range. Retracing your descent is a proven survival strategy."** | template · navigator |
+| Three quiet minutes at 300 m | **"Detecting a large lifeform in the region. Reason for its interest: unknown."** | pool · explorer · 1.00 |
+| Three more | **"Scans show the digestive tracts of nearby lifeforms contain tissue of unknown origin."** | pool · explorer · 1.00 |
+| Three more | **"Multiple lifeform signatures converging on this position. Are you certain whatever you're doing is worth it?"** | pool · explorer · 1.00 |
+| Three more | **"Logging position. In the event of your disappearance, this data may assist recovery."** | pool · explorer · 1.00 |
+| Nothing there at all, once per dive, when dread is high | **"Detecting a large lifeform in the vicinity. Bearing unresolved."** | the one lie it tells |
 
 <p align="center"><img src="docs/img/dread_curve.png" alt="Dread over one real dive" width="100%"></p>
 
@@ -59,27 +66,38 @@ rotated without repeats. The first is from a real dive that ended with a Collect
 Every file below is the real thing: IVONA Amy through the original filter chain, exactly as it plays in the headset.
 **The listen page has players for all of them: [al-scripting.github.io/FATHOM](https://al-scripting.github.io/FATHOM/).**
 Or click a line here and the browser plays it. **[▶ The whole showreel](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/fathom_showreel.mp3)**,
-seventeen lines with a breath between them, or pick one:
+twenty-six lines with a breath between them, or pick one:
 
 | | Line | Source · dread |
 |---|---|---|
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/companion_link.mp3) | "Companion link established. Monitoring vitals and surroundings." | on start |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/companion_link.mp3) | "Emergency companion online. Primary directive: keep you alive on an alien world." | on start |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/leviathan_class.mp3) | "Detecting a leviathan class lifeform in the region. Are you certain whatever you're doing is worth it?" | the game's own line, for reference |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/something_large.mp3) | "Something large is close. Stay still, or leave quietly." | template · 0.15 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/movement_detected.mp3) | "Movement detected. Initiate evasive maneuvers." | model · 0.15 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/contact_below_behind.mp3) | "Contact. Below, behind you. Do not move." | template, instant · 0.85 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/oxygen_decreasing.mp3) | "Oxygen levels decreasing. Initiate emergency ascent." | model · 0.15 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/oxygen_critical.mp3) | "Oxygen critical. Ascend." | template, instant |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/surface_out_of_reach.mp3) | "Oxygen critical. The surface is out of reach. Replenish now." | template, instant · 0.86 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/descent_path.mp3) | "Continue along your initial descent path." | model · 0.33 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/motion_on_sonar.mp3) | "Motion on the sonar. Nothing on the visual." | pool · 1.00, clean |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/motion_on_sonar_dread70.mp3) | the same line as the PDA starts to fail | 0.70 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/motion_on_sonar_dread95.mp3) | the same line, barely holding together | 0.95 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/contact_below_behind_dread90.mp3) | "Contact. Below, behind you. Do not move." while falling apart | 0.90 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/biomass_reading.mp3) | "Large biomass reading. Source unresolved." | pool · 1.00 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/sonar_edge.mp3) | "Something passed the sonar edge. Contact lost." | pool · 1.00 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/recording.mp3) | "Recording. In case." | pool · 1.00 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/phantom.mp3) | "Acoustic contact. Bearing unresolved." | the lie |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/oxygen_low_model.mp3) | "Warning: oxygen levels are below sustainable parameters." | model · 0.15 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/oxygen_low.mp3) | "Caution: oxygen reserve low. Consider beginning your ascent." | template |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/oxygen_air_near.mp3) | "Caution: oxygen reserve low. A replenishment source is within reach." | template |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/oxygen_critical.mp3) | "Warning: oxygen critical. Ascend." | template, instant |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/surface_out_of_reach.mp3) | "Warning: oxygen critical. Surface distance exceeds remaining supply. Replenish now." | template, instant · 0.86 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/lifeform_near.mp3) | "Detecting a large lifeform in the vicinity. Assessment: avoid." | pool · 0.15 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/leviathan_worth_it.mp3) | "Detecting a leviathan class lifeform in the immediate vicinity. Are you certain whatever you're doing is worth it?" | pool |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/lifeform_closing.mp3) | "Warning: large lifeform closing on this position. Consider remaining still." | pool |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/predation.mp3) | "Lifeform behavior in this region is consistent with predation. Adding report to databank." | pool |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/interest_in_position.mp3) | "Detecting a large lifeform with an interest in this position. Reason unknown." | pool |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/own_risk.mp3) | "Caution: proximity to a large lifeform. Exploration is conducted at your own risk." | pool |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/contact_below_behind.mp3) | "Warning: proximity contact. Below, behind you. Remain still." | template, instant · 0.85 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/pressure_model.mp3) | "Detecting extreme hydrostatic pressure. Assessment: continued immersion is unsustainable." | model · 0.15 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/safe_depth.mp3) | "Caution: passing safe depth. Adding report to databank." | template |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/descent_point_model.mp3) | "Scans indicate a consistent current flow towards the initial descent point." | model · 0.15 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/no_known_structures.mp3) | "No known structures within range. Retracing your descent is a proven survival strategy." | template |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/acoustic_baseline.mp3) | "Local acoustic activity exceeds baseline. Continuing to monitor." | pool · 1.00 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/interest_unknown.mp3) | "Detecting a large lifeform in the region. Reason for its interest: unknown." | pool · 1.00 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/digestive_tracts.mp3) | "Scans show the digestive tracts of nearby lifeforms contain tissue of unknown origin." | pool · 1.00, clean |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/digestive_tracts_dread70.mp3) | the same line as the PDA starts to fail | 0.70 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/digestive_tracts_dread95.mp3) | the same line, barely holding together | 0.95 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/contact_below_behind_dread90.mp3) | the contact line while falling apart | 0.90 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/worth_it.mp3) | "Multiple lifeform signatures converging on this position. Are you certain whatever you're doing is worth it?" | pool · 1.00 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/results_withheld.mp3) | "Environmental scan complete. Results withheld pending your survival." | pool · 1.00 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/logging_position.mp3) | "Logging position. In the event of your disappearance, this data may assist recovery." | pool · 1.00 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/phantom.mp3) | "Detecting a large lifeform in the vicinity. Bearing unresolved." | the lie |
 
 The degraded files are rebuilt from the clean line at playback, from the dread level, so no two failures are the
 same. Generate your own: `python pda_voice.py --dread 0.9 "Your line here."`
@@ -132,7 +150,7 @@ What the poster promised, what the first dives exposed, what the system does now
 
 ```
 Subnautica 2 ──UE4SS Lua──▶ telemetry.json ──▶ situation vector + dread ──▶ persona weights ──▶ line
-   (2 Hz)                    depth, air,        6 flags, 4 signals,          survivor 2×         model, 0.7 s
+   (2 Hz)                    depth, air,        6 flags, 4 signals,          survivor 2×         model, about 1 s
                              nearest threat,    zones, time to contact,      navigator            or template, 0 s
                              home, air source,  reachable surface            explorer                    │
                              time of day                                                                  ▼
@@ -150,12 +168,15 @@ Each frame becomes four signals in 0 to 1, linear, with the flag threshold at 0.
 | depth | (z − 200) / 200 | 200 m | 300 m | 400 m |
 
 Persona weights: survivor = 2 × max(oxygen, threat), navigator = lost, explorer = 1 − max of those, normalised.
-The model never sees a number. It gets bands ("Oxygen is running out. Something large is close. Deep. It is dark.")
-and a persona, and is held to the PDA's register: plain English, a reading and one instruction. A line is thrown
-away for the template if it contains a digit, a bearing word, a word off its topic, or poetry (a short list of
-words a small model reaches for when told to be unsettling: stirs, breathes, abyss, void, vast). The quiet-minute
-lines are not generated at all; they come from a pool of plain readouts, because asked to be unsettling a small
-model writes poetry and asked to be plain it writes nothing.
+The model never sees a number. It gets the situation in the register's own words ("Oxygen reserve low. Surface
+distance exceeds remaining supply. Safe depth exceeded.") and a persona, and it must answer the way the PDA
+answers: one of the register's sentence shapes, opening the way the PDA opens. A line is thrown away for the
+template if it opens any other way, contains a digit or a percentage, a bearing word, a word off its topic, or
+poetry (stirs, breathes, abyss, void, vast: the words a small model reaches for when told to be unsettling).
+The model only ever writes the lines where phrasing depends on context: oxygen, depth, the way back. Creature
+lines and the quiet-minute lines come from pools of original lines in the register, rotated without repeats, at
+zero latency, because a small model asked about a lifeform describes its anatomy and asked to be unsettling
+writes poetry. The register itself, and where it came from, is in [docs/pda_register.md](docs/pda_register.md).
 Silence is the default: a line fires when a flag crosses, or when the strongest signal changes after a 10 s cooldown.
 
 Dread per second: +1/600 below 200 m, +1/900 in the dark, +1/300 · +1/120 · +1/40 by zone, +0.15 per crisis line,
@@ -182,9 +203,9 @@ and from real dives.
 |---|---|---|
 | Relevance | 7 / 8 | 11 / 11 |
 | Persona tracking in compound crises | 8 / 8 | 11 / 11 |
-| Fallback rate | ≤ 14% | 8%, one off-topic line caught by the guard (plus 8 critical and pooled lines that skip the model by design) |
-| Median latency, model line | 1.2 s | 0.7 s in the sim, 1.0 to 1.6 s in game with the GPU shared |
-| Critical line latency | | 0 s, cached |
+| Fallback rate | ≤ 14% | 0% of the 10 model lines (11 more lines are critical or pooled and skip the model by design) |
+| Median latency, model line | 1.2 s | 1.2 s with another game holding the GPU, 0.25 to 0.7 s with it idle |
+| Critical and pooled line latency | | 0 s, cached |
 
 Player reactions after each line, 20 s window, against a baseline of random quiet moments, from `python analyze.py`:
 speed change, seconds stationary, ascended, closed on home, distanced the threat, turned back. One diver is a
