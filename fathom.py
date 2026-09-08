@@ -1,14 +1,12 @@
 """FATHOM: helpful, not omniscient. Telemetry -> situation vector -> persona -> PDA hint -> voice.
 
 Run beside the game:  python fathom.py            (local Ollama model, reads telemetry.json from the UE4SS mod)
-                      python fathom.py --claude   (Anthropic API, needs ANTHROPIC_API_KEY)
                       python fathom.py --offline  (template fallback only)
 Opens the live dashboard at http://127.0.0.1:8765 and records every frame to sessions/<start>.jsonl.
 """
 
 from __future__ import annotations
 
-import functools
 import http.server
 import json
 import random
@@ -32,7 +30,6 @@ DASHBOARD_PORT = 8765
 OLLAMA_MODEL = "gemma3:4b"  # llama3.2:3b measured 0.23 s but invented readings in 30% of lines
 OLLAMA_URL = "http://127.0.0.1:11434/api/chat"  # not localhost: the IPv6 attempt costs 2 s on Windows
 OLLAMA_OPTIONS = {"num_predict": 30, "temperature": 0.2, "num_ctx": 1024}  # tiny KV cache, stays on GPU
-CLAUDE_MODEL = "claude-opus-5"
 BUDGET_S = 2.5  # in-game the GPU is shared with the game: 1.0 to 1.6 s per hint, vs 0.25 s in the sim
 COOLDOWN_S = 20.0
 MAX_WORDS = 18
@@ -352,32 +349,13 @@ def warm_ollama() -> None:
     ollama({"model": OLLAMA_MODEL, "messages": [], "keep_alive": "30m", "options": OLLAMA_OPTIONS}, timeout=120)
 
 
-@functools.cache
-def claude() -> Any:
-    import anthropic  # only needed with --claude
-
-    return anthropic.Anthropic().with_options(timeout=BUDGET_S, max_retries=0)
-
-
 def ask(llm: str, system: str, user: str) -> str:
-    """One line from the selected backend. Raises on timeout, transport failure, or a non-text stop."""
-    if llm == "ollama":
-        r = ollama({"model": OLLAMA_MODEL, "stream": False, "keep_alive": "30m", "options": OLLAMA_OPTIONS,
-                    "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}, BUDGET_S)
-        if r.get("done_reason") != "stop":
-            raise ValueError(f"done_reason={r.get('done_reason')}")
-        return r["message"]["content"]
-    r = claude().messages.create(
-        model=CLAUDE_MODEL,
-        max_tokens=64,
-        thinking={"type": "disabled"},  # ponytail: a short hint cannot afford thinking tokens
-        output_config={"effort": "low"},
-        system=system,
-        messages=[{"role": "user", "content": user}],
-    )
-    if r.stop_reason != "end_turn":
-        raise ValueError(f"stop_reason={r.stop_reason}")
-    return " ".join(b.text for b in r.content if b.type == "text")
+    """One line from the local model. Raises on timeout, transport failure, or a non-text stop."""
+    r = ollama({"model": OLLAMA_MODEL, "stream": False, "keep_alive": "30m", "options": OLLAMA_OPTIONS,
+                "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}, BUDGET_S)
+    if r.get("done_reason") != "stop":
+        raise ValueError(f"done_reason={r.get('done_reason')}")
+    return r["message"]["content"]
 
 
 def template(topic: str | None, t: dict[str, Any]) -> str:
@@ -605,7 +583,7 @@ def serve_dashboard(fathom: Fathom) -> None:
 
 
 def backend(argv: list[str]) -> str | None:
-    return None if "--offline" in argv else "claude" if "--claude" in argv else "ollama"
+    return None if "--offline" in argv else "ollama"
 
 
 def main() -> None:

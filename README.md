@@ -258,8 +258,7 @@ Subnautica 2 (Steam)  +  UE4SS experimental build  +  Ollama with gemma3:4b  +  
    ```powershell
    cd S:\Master\FATHOM; python fathom.py
    ```
-   It says *"Companion link established"* in the PDA voice when everything is up. `--offline` skips the model,
-   `--claude` uses the Anthropic API instead of Ollama.
+   It says *"Link established"* in the PDA voice once the game's telemetry arrives. `--offline` skips the model.
 4. Dive. Afterwards, `python analyze.py`. Offline, `python sim.py` runs the eleven scenarios; `--live` measures the model.
 
 <br>

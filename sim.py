@@ -2,7 +2,6 @@
 
 python sim.py            fallback only, nothing needed
 python sim.py --live     local Ollama model, measures latency and fallback rate against the targets
-python sim.py --claude   same through the Anthropic API
 """
 
 from __future__ import annotations
@@ -96,4 +95,4 @@ def report(rows: list[dict[str, Any]]) -> None:
 
 
 if __name__ == "__main__":
-    report(run(fathom.backend(sys.argv) if "--live" in sys.argv or "--claude" in sys.argv else None))
+    report(run("ollama" if "--live" in sys.argv else None))
