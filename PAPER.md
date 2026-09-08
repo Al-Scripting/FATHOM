@@ -81,9 +81,12 @@ topic's vocabulary, or a word from a short "purple" list (stirs, breathes, abyss
 reaches for when asked to be unsettling. Critical topics (contact, oxygen critical, phantom) bypass the model and
 play a cached template at 0 s. Unprompted ambient lines come from a pool of eleven original lines in the register
 ("Scans show the digestive tracts of nearby lifeforms contain tissue of unknown origin."), rotated without repeats.
-Creature lines are pooled as well (six original lines in the register), because the model, asked about a lifeform,
-describes anatomy the PDA never would; the model is left the three situations where phrasing depends on context:
-oxygen, depth and the way back. Templates are the only lines that may point anywhere, and only at contact or when
+Creature lines (six) and depth lines (five) are pooled as well, because the model, asked about a lifeform,
+describes anatomy the PDA never would, and asked about depth beside a note on the light loses the thread; the
+model is left the two situations where phrasing depends on context: oxygen, with its air sources and the
+reachable-surface test, and the way back. This division is itself a finding: a 4B model can hold a register when
+the situation has variables, and a fixed situation is better served by fixed lines, which is also how the game
+does it. Templates are the only lines that may point anywhere, and only at contact or when
 naming the surface or an air source.
 
 **Oxygen honesty.** The system computes whether the remaining air reaches the surface at 2 m/s. When it does not,

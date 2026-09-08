@@ -50,7 +50,8 @@ Pooled lines are for the quiet minutes, rotated without repeats.
 | Another crosses 60 m | **"Detecting a leviathan class lifeform in the immediate vicinity. Are you certain whatever you're doing is worth it?"** | pool, 0 s · survivor |
 | Another | **"Lifeform behavior in this region is consistent with predation. Adding report to databank."** | pool, 0 s · survivor |
 | The same creature at 20 m, instantly | **"Warning: proximity contact. Below, behind you. Remain still."** | template, 0 s · survivor · 0.85 |
-| Passing 200 m | **"Detecting extreme hydrostatic pressure. Assessment: continued immersion is unsustainable."** | model · explorer · 0.15 |
+| Passing 200 m | **"Caution: passing safe depth. Continuing descent is not advised."** | pool, 0 s · explorer · 0.15 |
+| Deeper | **"Depth exceeds suit rating. Assessment: immediate ascent required."** | pool, 0 s · explorer |
 | Far from anything | **"Scans indicate a consistent current flow towards the initial descent point."** | model · navigator · 0.15 |
 | Far from anything | **"No known structures within range. Retracing your descent is a proven survival strategy."** | template · navigator |
 | Three quiet minutes at 300 m | **"Detecting a large lifeform in the region. Reason for its interest: unknown."** | pool · explorer · 1.00 |
@@ -66,7 +67,7 @@ Pooled lines are for the quiet minutes, rotated without repeats.
 Every file below is the real thing: IVONA Amy through the original filter chain, exactly as it plays in the headset.
 **The listen page has players for all of them: [al-scripting.github.io/FATHOM](https://al-scripting.github.io/FATHOM/).**
 Or click a line here and the browser plays it. **[▶ The whole showreel](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/fathom_showreel.mp3)**,
-twenty-six lines with a breath between them, or pick one:
+twenty-seven lines with a breath between them, or pick one:
 
 | | Line | Source · dread |
 |---|---|---|
@@ -84,8 +85,9 @@ twenty-six lines with a breath between them, or pick one:
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/interest_in_position.mp3) | "Detecting a large lifeform with an interest in this position. Reason unknown." | pool |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/own_risk.mp3) | "Caution: proximity to a large lifeform. Exploration is conducted at your own risk." | pool |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/contact_below_behind.mp3) | "Warning: proximity contact. Below, behind you. Remain still." | template, instant · 0.85 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/pressure_model.mp3) | "Detecting extreme hydrostatic pressure. Assessment: continued immersion is unsustainable." | model · 0.15 |
-| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/safe_depth.mp3) | "Caution: passing safe depth. Adding report to databank." | template |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/safe_depth.mp3) | "Caution: passing safe depth. Adding report to databank." | pool · 0.15 |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/descent_not_advised.mp3) | "Caution: passing safe depth. Continuing descent is not advised." | pool |
+| [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/suit_rating.mp3) | "Depth exceeds suit rating. Assessment: immediate ascent required." | pool |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/descent_point_model.mp3) | "Scans indicate a consistent current flow towards the initial descent point." | model · 0.15 |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/no_known_structures.mp3) | "No known structures within range. Retracing your descent is a proven survival strategy." | template |
 | [▶](https://github.com/Al-Scripting/FATHOM/raw/main/docs/audio/acoustic_baseline.mp3) | "Local acoustic activity exceeds baseline. Continuing to monitor." | pool · 1.00 |
@@ -173,10 +175,11 @@ distance exceeds remaining supply. Safe depth exceeded.") and a persona, and it 
 answers: one of the register's sentence shapes, opening the way the PDA opens. A line is thrown away for the
 template if it opens any other way, contains a digit or a percentage, a bearing word, a word off its topic, or
 poetry (stirs, breathes, abyss, void, vast: the words a small model reaches for when told to be unsettling).
-The model only ever writes the lines where phrasing depends on context: oxygen, depth, the way back. Creature
-lines and the quiet-minute lines come from pools of original lines in the register, rotated without repeats, at
-zero latency, because a small model asked about a lifeform describes its anatomy and asked to be unsettling
-writes poetry. The register itself, and where it came from, is in [docs/pda_register.md](docs/pda_register.md).
+The model only ever writes the lines where phrasing depends on context: oxygen, with its air sources and the
+reachable-surface test, and the way back. Creature, depth and quiet-minute lines come from pools of original lines
+in the register, rotated without repeats, at zero latency, because a small model asked about a lifeform describes
+its anatomy, asked about depth loses the thread, and asked to be unsettling writes poetry. The register itself, and
+where it came from, is in [docs/pda_register.md](docs/pda_register.md).
 Silence is the default: a line fires when a flag crosses, or when the strongest signal changes after a 10 s cooldown.
 
 Dread per second: +1/600 below 200 m, +1/900 in the dark, +1/300 · +1/120 · +1/40 by zone, +0.15 per crisis line,
@@ -203,7 +206,7 @@ and from real dives.
 |---|---|---|
 | Relevance | 7 / 8 | 11 / 11 |
 | Persona tracking in compound crises | 8 / 8 | 11 / 11 |
-| Fallback rate | ≤ 14% | 0% of the 10 model lines (11 more lines are critical or pooled and skip the model by design) |
+| Fallback rate | ≤ 14% | 0% of the model lines, oxygen and the way back (the rest are critical or pooled and skip the model by design) |
 | Median latency, model line | 1.2 s | 1.2 s with another game holding the GPU, 0.25 to 0.7 s with it idle |
 | Critical and pooled line latency | | 0 s, cached |
 

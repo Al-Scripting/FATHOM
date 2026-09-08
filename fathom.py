@@ -137,7 +137,14 @@ TOPIC = {"oxygen": "the oxygen reserve", "oxygen_critical": "the oxygen reserve"
 # Pooled topics are not generated. Unprompted lines: a 4B model asked to be unsettling writes poetry, and asked to
 # be plain writes nothing. Creature lines: asked about a lifeform it describes anatomy. The PDA's register for both
 # is fixed, so these are original lines in that register, rotated without repeats, at zero latency.
-POOLED = {"ambient", "threat"}
+POOLED = {"ambient", "threat", "depth"}
+DEPTH_LINES = [
+    "Caution: passing safe depth. Adding report to databank.",
+    "Caution: passing safe depth. Continuing descent is not advised.",
+    "Depth exceeds suit rating. Assessment: immediate ascent required.",
+    "Warning: approaching crush depth.",
+    "Caution: this suit is not rated for further descent. Exploration is conducted at your own risk.",
+]
 THREAT_LINES = [
     "Detecting a large lifeform in the vicinity. Assessment: avoid.",
     "Detecting a leviathan class lifeform in the immediate vicinity. Are you certain whatever you're doing is worth it?",
@@ -159,6 +166,7 @@ AMBIENT_LINES = [
     "Logging position. In the event of your disappearance, this data may assist recovery.",
     "Adding report to databank. Category: unexplained.",
 ]
+POOLS = {"threat": THREAT_LINES, "ambient": AMBIENT_LINES, "depth": DEPTH_LINES}
 # A model line must be about its topic. One of these words, or the template plays.
 TOPIC_WORDS = {
     "oxygen": {"oxygen", "air", "ascend", "ascent", "ascending", "breath", "breathing", "surface", "replenish",
@@ -430,7 +438,7 @@ class Fathom:
     def next_pooled(self, topic: str) -> str:
         """The next line from a topic's pool, every line once before any repeats, in a fresh order each cycle."""
         if not self.pools.get(topic):
-            self.pools[topic] = list(THREAT_LINES if topic == "threat" else AMBIENT_LINES)
+            self.pools[topic] = list(POOLS[topic])
             self.rng.shuffle(self.pools[topic])
         return self.pools[topic].pop()
 
@@ -527,7 +535,7 @@ def backend(argv: list[str]) -> str | None:
 def main() -> None:
     fathom = Fathom(backend(sys.argv))
     pda_voice.prewarm([READY, *FALLBACK_AIR_NEAR.values(), *FALLBACK_NO_SURFACE.values(), NO_SURFACE_AIR_NEAR,
-                       *(v for k, v in FALLBACK.items() if k), *THREAT_LINES, *AMBIENT_LINES])
+                       *(v for k, v in FALLBACK.items() if k), *THREAT_LINES, *AMBIENT_LINES, *DEPTH_LINES])
     serve_dashboard(fathom)
     print(f"FATHOM watching {TELEMETRY} ({fathom.llm or 'offline'}), dashboard http://127.0.0.1:{DASHBOARD_PORT}, "
           f"recording {fathom.session.name}")

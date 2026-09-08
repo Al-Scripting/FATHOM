@@ -93,6 +93,8 @@ def test_silence_compound_and_dread() -> None:
     assert all(h["persona"] == "survivor" for h in rows["compound"]["hints"])
     threat = rows["compound"]["hints"][0]
     assert threat["source"] == "pool" and threat["text"] in fathom.THREAT_LINES and threat["latency_s"] == 0
+    depth = rows["deep_entry"]["hints"][0]
+    assert depth["topic"] == "depth" and depth["source"] == "pool" and depth["text"] in fathom.DEPTH_LINES
     assert all(r["relevant"] and r["tracked"] for r in rows.values())
     long = rows["long_dive"]["hints"]
     assert long[0]["topic"] == "depth" and long[-1]["topic"] == "ambient" and long[-1]["dread"] >= fathom.AMBIENT_DREAD

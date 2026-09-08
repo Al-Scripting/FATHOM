@@ -60,6 +60,15 @@ Templates, which play instantly and are the only lines allowed to point anywhere
 | Oxygen critical, both | Warning: oxygen critical. Surface distance exceeds remaining supply. Replenish now. |
 | Contact | Warning: proximity contact. Below, behind you. Remain still. |
 
+Depth lines are pooled, because a small model given "safe depth exceeded" and a note about the light produces
+"the depth is unknown". Five lines, rotated without repeats:
+
+- Caution: passing safe depth. Adding report to databank.
+- Caution: passing safe depth. Continuing descent is not advised.
+- Depth exceeds suit rating. Assessment: immediate ascent required.
+- Warning: approaching crush depth.
+- Caution: this suit is not rated for further descent. Exploration is conducted at your own risk.
+
 Creature lines are pooled too, because a small model asked about a lifeform describes its anatomy, and the
 PDA never does. Six lines, rotated without repeats:
 
