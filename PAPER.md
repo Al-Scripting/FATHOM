@@ -153,8 +153,9 @@ With one diver and a handful of lines this describes dives; it becomes evidence 
 ### Self-report (planned)
 
 Within-subject, two conditions per participant in counterbalanced order: FATHOM on, FATHOM off. Short dives with
-a scripted crisis. Tension and immersion via the Game Experience Questionnaire core module (tension and
-sensory/imaginative immersion components), plus a one-item probe after each line ("did that help / did that
+a scripted crisis. Player experience via the Player Experience Inventory (Vanden Abeele et al., 2020), the
+eleven-item miniPXI if dives are short, rather than the GEQ, whose validity and citation record are questioned
+(Law et al., 2018); plus a one-item tension probe and a one-item probe after each line ("did that help / did that
 tell you too much"). Sample of 12 to 20 is realistic for a course project.
 
 ### Physiological (not planned for the poster)
@@ -186,12 +187,55 @@ not localhost (2 s IPv6 penalty), and give the warm-up and the real call identic
 Creature temper from behaviour attribute sets so threat is mood, not distance. Yielding to the game's own PDA
 playback. Local voice synthesis. Participants.
 
-## References (verify before citing)
+## References
 
-- IJsselsteijn, W. A., de Kort, Y. A. W., & Poels, K. (2013). *The Game Experience Questionnaire.* Eindhoven:
-  Technische Universiteit Eindhoven.
+Verified against publisher or repository pages on 2026-09-09. Grouped by the claim each supports.
+
+Fear, dread and the deep:
+
+- Evans (2024). Too Afraid to Go Deeper: Creating Pervasive Dread Through Blended Design Structures in Subnautica
+  and Subnautica: Below Zero. *Game Studies* 24(4). https://gamestudies.org/2404/articles/evans
+- Carleton, R. N. (2016). Fear of the unknown: One fear to rule them all? *Journal of Anxiety Disorders* 41, 5–21.
+- Costikyan, G. (2013). *Uncertainty in Games.* MIT Press.
+- Ekman, I., & Lankoski, P. (2009). Hair-raising entertainment: Emotions, sound, and structure in Silent Hill 2 and
+  Fatal Frame. In B. Perron (Ed.), *Horror Video Games: Essays on the Fusion of Fear and Play* (pp. 181–199).
+  McFarland.
+- Grimshaw, M. (2009). The audio Uncanny Valley: Sound, fear and the horror game. *Audio Mostly 2009*, 21–26.
+- Toprac, P., & Abdel-Meguid, A. (2011). Causing fear, suspense, and anxiety using sound design in computer games.
+  In M. Grimshaw (Ed.), *Game Sound Technology and Player Interaction* (pp. 176–191). IGI Global.
+
+Diegetic interfaces and companions:
+
+- Iacovides, I., Cox, A., Kennedy, R., Cairns, P., & Jennett, C. (2015). Removing the HUD: The impact of
+  non-diegetic game elements and expertise on player involvement. *CHI PLAY 2015*. DOI 10.1145/2793107.2793120.
+- Emmerich, K., Ring, P., & Masuch, M. (2018). I'm glad you are on my side: How to design compelling game
+  companions. *CHI PLAY 2018*, 141–152. DOI 10.1145/3242671.3242709.
+- Dyckhoff, M. (2014). Ellie: Buddy AI in The Last of Us. *Game Developers Conference 2014.*
+
+Adaptive direction and when to speak:
+
+- Booth, M. (2009). The AI systems of Left 4 Dead. *Game Developers Conference 2009.*
+- Yannakakis, G. N., & Togelius, J. (2011). Experience-driven procedural content generation. *IEEE Transactions on
+  Affective Computing* 2(3), 147–161. DOI 10.1109/T-AFFC.2011.6.
+- Horvitz, E. (1999). Principles of mixed-initiative user interfaces. *CHI 1999*, 159–166.
+- McFarlane, D. C., & Latorella, K. A. (2002). The scope and importance of human interruption in human-computer
+  interaction design. *Human–Computer Interaction* 17(1), 1–61.
+- Gallotta, R., et al. (2024). Large language models and games: A survey and roadmap. *IEEE Transactions on
+  Games.* arXiv:2402.18659.
+
+Measuring the player:
+
+- Law, E. L.-C., Brühlmann, F., & Mekler, E. D. (2018). Systematic review and validation of the Game Experience
+  Questionnaire (GEQ): Implications for citation and reporting practice. *CHI PLAY 2018*, 257–270.
+  DOI 10.1145/3242671.3242683. (Why the GEQ is not used here.)
+- Vanden Abeele, V., Spiel, K., Nacke, L., Johnson, D., & Gerling, K. (2020). Development and validation of the
+  Player Experience Inventory. *International Journal of Human-Computer Studies* 135, 102370.
+  DOI 10.1016/j.ijhcs.2019.102370. (The instrument for the study; the miniPXI for short dives.)
+
+Tools and community sources:
+
 - LeeTwentyThree. *SnPdaVoice*, https://github.com/LeeTwentyThree/SnPdaVoice, and https://subnauticapdavoice.com/
 - UE4SS, https://github.com/UE4SS-RE/RE-UE4SS
 - r/subnautica, "How do I make subnautica more scary for myself?" (2023), thread 16pdzth.
-- Subnautica 2 wiki entries for the Collector Leviathan and Deepwing Brooder; PC Gamer and GameSpot oxygen guides
-  (2026), for creature behaviour and oxygen sources as of Early Access.
+- Subnautica wiki, Dialogue (Subnautica); Subnautica 2 wiki, Fauna category; wikily.gg creature index (2026), for
+  the PDA line set, creature behaviour and oxygen sources as of Early Access.
